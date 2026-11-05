@@ -100,7 +100,8 @@ export function buildLayers(l: Led, lay: Layout, opt: GuideOptions, st: RenderSt
   const C = GUIDE_COLORS;
   const u = clamp(Math.min(l.cabinet.pxW, l.cabinet.pxH) / 128, 0.4, 4);
   // 로고 원은 모든 면에서 같은 크기: 가장 작은 면에 맞춤
-  const rLogo = Math.min(...lay.faces.map((f) => Math.min(f.w, f.h))) * 0.2;
+  const minFace = Math.min(...lay.faces.map((f) => Math.min(f.w, f.h)));
+  const rLogo = Math.min(minFace * 0.2 * (l.logoScale ?? 1), minFace * 0.48); // 가장 작은 면을 넘지 않게
   const geo = lay.faces.map((f) => faceGeo(f, rLogo));
 
   const b = base.getContext('2d')!;

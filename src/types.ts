@@ -71,6 +71,8 @@ export interface Led {
   typo?: Typography;
   /** 커스텀 로고 (PNG dataURL). 없으면 기본 ZUNO 로고 */
   logo?: string;
+  /** 가운데 로고 원 크기 배율 (1 = 기본, 가장 작은 면의 20%). 인풋·아웃풋 공통 */
+  logoScale?: number;
   /** 영상 모션 시간. 없으면 DEFAULT_MOTION */
   motion?: MotionCfg;
   input: {

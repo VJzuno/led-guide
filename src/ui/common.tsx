@@ -352,6 +352,7 @@ export function LogoPicker({ led }: { led: Led }) {
     } catch { toast('이미지를 읽을 수 없습니다'); }
   };
   return (
+    <>
     <div class="logo-pick">
       <img src={led.logo || DEFAULT_LOGO_URL} alt="로고" />
       <div class="grow small">
@@ -361,6 +362,11 @@ export function LogoPicker({ led }: { led: Led }) {
       <label class="chip">첨부<input type="file" accept="image/*" style="display:none" onChange={pick} /></label>
       {led.logo && <button class="chip" onClick={() => updateLed(led.id, (x) => { delete x.logo; return x; })}>기본</button>}
     </div>
+    <Slider label="로고 원 크기 (모든 면 동일)" value={led.logoScale ?? 1} min={0.5} max={2.4} step={0.05} def={1}
+      fmt={(v) => Math.round(v * 100) + '%'}
+      onChange={(v) => updateLed(led.id, (x) => { if (Math.abs(v - 1) < 0.001) delete x.logoScale; else x.logoScale = Math.round(v * 100) / 100; return x; })} />
+    <div class="small muted" style="margin:-2px 0 10px">가장 작은 면에 맞춰 계산되고, 면을 넘을 만큼 커지지는 않아요. 숫자 버튼을 누르면 기본(100%)</div>
+    </>
   );
 }
 
