@@ -20,6 +20,16 @@ VJ용 LED 인풋 / 아웃풋 가이드 제작 PWA. 아이폰(Safari, 홈 화면�
 
 평문 비밀번호는 코드와 저장소 어디에도 들어가지 않습니다. 해시만 빌드할 때 주입됩니다.
 
+**가장 쉬운 방법 (GitHub CLI 로그인 상태):**
+
+```bash
+sh scripts/set-password.sh VJzuno/led-guide
+```
+
+비밀번호를 두 번 입력하면 해시만 GitHub Secret `VITE_PASS_HASH` 에 저장됩니다. 그다음 Actions 에서 배포를 다시 돌리면 적용됩니다.
+
+**직접 하는 방법:**
+
 ```bash
 npm run hash -- "원하는비밀번호"
 # → 64자리 hex 출력
