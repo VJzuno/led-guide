@@ -13,6 +13,7 @@ import { state, set, useStore, applyAccent, answer } from './store';
 import { loadAll, requestPersist } from './db';
 import { isUnlocked } from './lock';
 import { loadGuideFonts } from './render';
+import { restoreSyncMeta, needsBackup } from './sync';
 import { createSample } from './sample';
 import { Icon } from './ui/common';
 import { Lock } from './ui/Lock';
@@ -80,7 +81,7 @@ function App() {
       {page}
       <nav class="tabbar">
         {tabs.map(([k, href, ic, label]) => (
-          <a key={k} href={'#' + href} class={tab === k ? 'on' : ''}><Icon name={ic} />{label}</a>
+          <a key={k} href={'#' + href} class={tab === k ? 'on' : ''}><span class="tab-ic"><Icon name={ic} />{k === 'menu' && needsBackup() && <i class="dot" />}</span>{label}</a>
         ))}
       </nav>
       {s.updateReady && (
@@ -95,8 +96,8 @@ function App() {
           <div class="modal-box" onClick={(e) => e.stopPropagation()}>
             <div style="white-space:pre-line">{s.ask.msg}</div>
             <div class="row" style="margin-top:16px">
-              <button class="btn grow" onClick={() => answer(false)}>취소</button>
-              <button class="btn grow danger-fill" onClick={() => answer(true)}>{s.ask.ok}</button>
+              {!s.ask.info && <button class="btn grow" onClick={() => answer(false)}>취소</button>}
+              <button class={'btn grow ' + (s.ask.info ? 'primary' : 'danger-fill')} onClick={() => answer(true)}>{s.ask.ok}</button>
             </div>
           </div>
         </div>
@@ -123,6 +124,7 @@ async function boot() {
     // 첫 실행: 샘플 프로젝트 1개
     if (d.fresh && d.projects.length === 0) createSample();
     requestPersist();
+    await restoreSyncMeta();
   } catch (e) {
     console.error(e);
     alert('저장소를 열 수 없습니다. 개인정보 보호 모드인지 확인하세요.');

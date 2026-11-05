@@ -129,6 +129,29 @@ export async function importBackup(b: BackupFile) {
   await tx.done;
 }
 
+/** 최신 것끼리 합치기: 같은 id 면 updatedAt 이 더 큰 쪽을 남김 (휴지통 이동도 updatedAt 이 갱신되므로 같이 반영) */
+export async function mergeBackup(b: BackupFile) {
+  if (b?.app !== 'zuno-led-guide-maker') throw new Error('이 앱의 백업 파일이 아닙니다');
+  if (b.schemaVersion > SCHEMA_VERSION) throw new Error('더 새 버전 앱에서 만든 백업입니다. 앱을 새로고침해서 업데이트하세요');
+  const data = migrate({ projects: b.projects || [], leds: b.leds || [], settings: b.settings || {} }, b.schemaVersion);
+  const d = await db();
+  const tx = d.transaction(['projects', 'leds'], 'readwrite');
+  let added = 0, updated = 0, kept = 0;
+  const merge = async (store: 'projects' | 'leds', items: any[]) => {
+    const os = tx.objectStore(store);
+    for (const it of items) {
+      const cur = await os.get(it.id);
+      if (!cur) { await os.put(it); added++; }
+      else if ((it.updatedAt || 0) > (cur.updatedAt || 0)) { await os.put(it); updated++; }
+      else kept++;
+    }
+  };
+  await merge('projects', data.projects);
+  await merge('leds', data.leds);
+  await tx.done;
+  return { added, updated, kept };
+}
+
 export async function requestPersist() {
   try {
     if (navigator.storage?.persist && !(await navigator.storage.persisted())) await navigator.storage.persist();

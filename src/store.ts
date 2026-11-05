@@ -16,7 +16,7 @@ export interface State {
   updateReady: boolean;
   saveFallback: { url: string; name: string; type: string } | null;
   fontsReady: number;
-  ask: { msg: string; ok: string; resolve: (v: boolean) => void } | null;
+  ask: { msg: string; ok: string; info?: boolean; resolve: (v: boolean) => void } | null;
 }
 
 export const state: State = {
@@ -230,6 +230,10 @@ export async function refreshExports() {
 /** 앱 안 확인창 (브라우저 confirm 은 PWA·인앱 브라우저에서 막히는 경우가 있어 사용 안 함) */
 export function ask(msg: string, ok = '삭제'): Promise<boolean> {
   return new Promise((resolve) => set({ ask: { msg, ok, resolve } }));
+}
+/** 버튼 하나짜리 안내창 */
+export function notice(msg: string): Promise<boolean> {
+  return new Promise((resolve) => set({ ask: { msg, ok: '확인', info: true, resolve } }));
 }
 export function answer(v: boolean) {
   const a = state.ask;

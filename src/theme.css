@@ -265,3 +265,10 @@ details.sec[open] > summary .chev { transform: rotate(90deg); }
   .face-row .fgap { grid-area: g; }
   .face-row .fbtn { grid-area: b; align-self: start; }
 }
+
+/* iCloud 백업 */
+.sync-card { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; margin-top: 12px; }
+.sync-ic { font-size: 22px; color: var(--accent); width: 28px; text-align: center; }
+.tab-ic { position: relative; display: inline-flex; }
+.tab-ic .dot { position: absolute; top: -2px; right: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+label.btn.disabled { opacity: .35; pointer-events: none; }

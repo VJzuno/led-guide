@@ -1,6 +1,7 @@
 import { useStore, createProject, newLed, addLed, getProject } from '../store';
 import { inputLayout } from '../layout';
 import { go } from './common';
+import { ago, lastBackupAt, changedSinceBackup, needsBackup } from '../sync';
 
 export function Home() {
   const s = useStore();
@@ -24,6 +25,15 @@ export function Home() {
       <p class="muted" style="margin:0 0 20px">LED 인풋 / 아웃풋 가이드 제작</p>
 
       <button class="btn primary big block" onClick={newProject}>+ 새 프로젝트</button>
+
+      <a class={'card sync-card' + (needsBackup() ? ' accent' : '')} href="#/menu/backup">
+        <span class="sync-ic">☁︎</span>
+        <div class="grow">
+          <div style="font-weight:600">iCloud 백업</div>
+          <div class="small muted">마지막 저장 {ago(lastBackupAt())}{changedSinceBackup() > 0 && <> · 바뀐 항목 <b style="color:var(--accent)">{changedSinceBackup()}</b></>}</div>
+        </div>
+        {needsBackup() && <span class="chip on">저장</span>}
+      </a>
 
       <div class="row" style="margin-top:12px">
         <a class="card grow" href="#/recent" style="text-decoration:none;color:inherit">
