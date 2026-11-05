@@ -5,10 +5,11 @@ import logoUrl from './assets/zuno-logo.png';
 /* ============ 가이드 이미지 컬러 (여기만 바꾸면 PNG·영상 색이 바뀜) ============ */
 export const GUIDE_COLORS = {
   bg: '#000000',            // 캔버스 빈 영역
-  checkerA: '#2E2E33',      // 캐비닛 체커 1
-  checkerB: '#3C3C43',      // 캐비닛 체커 2
-  grid: '#55555F',          // 캐비닛 그리드 라인
-  cabNumber: '#9A9AA8',     // 캐비닛 번호 (행-열)
+  // 픽셀맵(캐비닛 체커)은 포인트 컬러로 물들인 어두운 2톤. 값 = 포인트 컬러를 블랙(+)/화이트(-)와 섞는 비율
+  checkerDark: 0.9,         // 어두운 칸: 거의 블랙에 보라 기운
+  checkerLight: 0.73,       // 밝은 칸: 어두운 보라 (대비를 키우려면 이 값을 낮추기)
+  gridMix: 0.3,             // 그리드 라인
+  cabNumberMix: -0.5,       // 캐비닛 번호 (음수 = 화이트 쪽으로)
   faceBorder: '#FFFFFF',    // 면 테두리
   // accent(퍼플)은 설정의 포인트 컬러를 사용 (기본 #5613C8)
   disc: 'rgba(0,0,0,0.5)',  // 로고 원 안쪽 (PNG). 살짝 투명해서 픽셀맵이 비침
@@ -108,7 +109,8 @@ export function buildLayers(l: Led, lay: Layout, opt: GuideOptions, st: RenderSt
   b.setTransform(scale, 0, 0, scale, 0, 0);
   b.fillStyle = C.bg; b.fillRect(0, 0, lay.W, lay.H);
   for (const g of lay.gaps) drawGap(b, g, l.gapPx, u, st.accent);
-  for (const f of lay.faces) drawFaceBase(b, l, f, opt);
+  const pm = pixelColors(st.accent);
+  for (const f of lay.faces) drawFaceBase(b, l, f, opt, pm);
   if (lay.kind === 'OUT') {
     b.strokeStyle = st.accent; b.globalAlpha = 0.5; b.lineWidth = Math.max(1, 2 * u);
     b.strokeRect(0.5, 0.5, lay.W - 1, lay.H - 1); b.globalAlpha = 1;
@@ -302,23 +304,29 @@ export function drawGuide(canvas: HTMLCanvasElement, l: Led, lay: Layout, opt: G
 }
 
 /* ---------- 그리기 요소 ---------- */
-function drawFaceBase(ctx: CanvasRenderingContext2D, l: Led, f: FaceRect, opt: GuideOptions) {
+/** 포인트 컬러에서 픽셀맵 색 4개 만들기 */
+function pixelColors(accent: string) {
   const C = GUIDE_COLORS;
+  const m = (k: number) => (k >= 0 ? mixHex(accent, '#000000', k) : mixHex(accent, '#FFFFFF', -k));
+  return { a: m(C.checkerDark), b: m(C.checkerLight), grid: m(C.gridMix), num: m(C.cabNumberMix) };
+}
+
+function drawFaceBase(ctx: CanvasRenderingContext2D, l: Led, f: FaceRect, opt: GuideOptions, pm: ReturnType<typeof pixelColors>) {
   const cw = l.cabinet.pxW, ch = l.cabinet.pxH;
   ctx.save();
   ctx.beginPath(); ctx.rect(f.x, f.y, f.w, f.h); ctx.clip(); // 픽셀 기준이라 마지막 캐비닛은 잘릴 수 있음
   for (let r = 0; r < f.rows - 1e-6; r++) for (let c = 0; c < f.cols - 1e-6; c++) {
-    ctx.fillStyle = (r + c) % 2 ? C.checkerB : C.checkerA;
+    ctx.fillStyle = (r + c) % 2 ? pm.b : pm.a;
     ctx.fillRect(f.x + c * cw, f.y + r * ch, cw, ch);
   }
-  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.strokeStyle = pm.grid; ctx.lineWidth = 1;
   ctx.beginPath();
   for (let c = 1; c < f.cols - 1e-6; c++) { const x = f.x + c * cw + 0.5; ctx.moveTo(x, f.y); ctx.lineTo(x, f.y + f.h); }
   for (let r = 1; r < f.rows - 1e-6; r++) { const y = f.y + r * ch + 0.5; ctx.moveTo(f.x, y); ctx.lineTo(f.x + f.w, y); }
   ctx.stroke();
   if (opt.panelNumbers) {
     const fs = clamp(Math.min(cw, ch) * 0.1, 7, 48);
-    ctx.font = `500 ${fs}px ${F_MONO}`; ctx.fillStyle = C.cabNumber;
+    ctx.font = `500 ${fs}px ${F_MONO}`; ctx.fillStyle = pm.num;
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     const pad = Math.max(2, fs * 0.45);
     for (let r = 0; r < f.rows - 1e-6; r++) for (let c = 0; c < f.cols - 1e-6; c++)
