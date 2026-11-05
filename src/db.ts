@@ -60,6 +60,10 @@ const migrations: Record<number, (d: Data) => void> = {
       }
     }
   },
+  // v6: 기본 포인트 컬러 #A855F7 → #5613C8 (직접 바꾼 색은 유지)
+  6: (d) => {
+    if (!d.settings.accent || String(d.settings.accent).toUpperCase() === '#A855F7') d.settings.accent = '#5613C8';
+  },
 };
 
 export function migrate(d: Data, from: number): Data {
@@ -82,6 +86,8 @@ export async function loadAll() {
     const tx = d.transaction(['projects', 'leds', 'meta'], 'readwrite');
     for (const p of data.projects) tx.objectStore('projects').put(p);
     for (const l of data.leds) tx.objectStore('leds').put(l);
+    const { key: _k, ...s } = data.settings as any;
+    tx.objectStore('meta').put({ key: 'settings', ...s });
     await tx.done;
   }
   if (!schema || from !== SCHEMA_VERSION) await d.put('meta', { key: 'schema', version: SCHEMA_VERSION });

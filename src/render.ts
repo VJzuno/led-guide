@@ -10,7 +10,7 @@ export const GUIDE_COLORS = {
   grid: '#55555F',          // 캐비닛 그리드 라인
   cabNumber: '#9A9AA8',     // 캐비닛 번호 (행-열)
   faceBorder: '#FFFFFF',    // 면 테두리
-  // accent(퍼플)은 설정의 포인트 컬러를 사용 (기본 #A855F7)
+  // accent(퍼플)은 설정의 포인트 컬러를 사용 (기본 #5613C8)
   disc: 'rgba(0,0,0,0.5)',  // 로고 원 안쪽 (PNG). 살짝 투명해서 픽셀맵이 비침
   textBg: 'rgba(0,0,0,0.62)',
   labelText: '#FFFFFF',

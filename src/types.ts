@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export interface Project {
   id: string;
@@ -124,7 +124,7 @@ export interface Settings {
   logoTint: 'white' | 'accent';
 }
 
-export const DEFAULT_SETTINGS: Settings = { accent: '#A855F7', defaultPreset: 'UHD', logoTint: 'white' };
+export const DEFAULT_SETTINGS: Settings = { accent: '#5613C8', defaultPreset: 'UHD', logoTint: 'white' };
 
 export const DEFAULT_OPTIONS: GuideOptions = {
   panelNumbers: true,
