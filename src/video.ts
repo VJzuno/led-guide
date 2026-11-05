@@ -26,6 +26,27 @@ async function pickConfig(w: number, h: number, fps: number): Promise<VideoEncod
   return null;
 }
 
+/** 시도할 영상 크기 후보 (큰 것부터, 비율 유지). 인코더가 "된다"고 해도 실제로 실패할 때가 있어서
+ *  호출하는 쪽에서 순서대로 실제 인코딩을 시도하고, 실패하면 다음 크기로 넘어감. */
+export async function encodeCandidates(W: number, H: number): Promise<{ scale: number; w: number; h: number }[]> {
+  // encodeVideo 와 같은 방식(반올림 후 홀수면 +1)으로 계산해서 안내 문구와 실제 파일 크기가 같게
+  const even = (n: number) => { const r = Math.max(2, Math.round(n)); return r + (r % 2); };
+  const mk = (s: number) => ({ scale: s, w: even(W * s), h: even(H * s) });
+  if (typeof VideoEncoder === 'undefined') return [mk(Math.min(1, 3840 / Math.max(W, H)))]; // 실시간 녹화 폴백
+  // 흔한 H.264 한도: 가로·세로 최대 4096, 넓이 4096×2304
+  const limits: [number, number][] = [[Infinity, Infinity], [4096, 4096], [4096, 2304], [3840, 2160], [2560, 1600], [1920, 1080], [1280, 720]];
+  const out: { scale: number; w: number; h: number }[] = [];
+  for (const [mw, mh] of limits) {
+    const long = Math.max(W, H), short = Math.min(W, H);
+    const s = Math.min(1, mw / long, mh / short, mw === Infinity ? 1 : Math.sqrt((4096 * 2304) / (W * H)));
+    const c = mk(s);
+    if (out.some((o) => o.w === c.w && o.h === c.h)) continue;
+    if (await pickConfig(c.w, c.h, MOTION.fps)) out.push(c);
+  }
+  if (!out.length) throw new Error('이 기기에서는 영상을 만들 수 없습니다');
+  return out;
+}
+
 export async function encodeVideo(L: Layers, v: VideoVariant, onProgress: (p: number) => void): Promise<Blob> {
   const fps = MOTION.fps;
   const dur = videoDuration(L, v);

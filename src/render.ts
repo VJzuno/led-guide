@@ -82,9 +82,9 @@ export interface Layers {
 
 export interface RenderStyle { accent: string; logoTint: 'white' | 'accent'; logo: HTMLImageElement | null }
 
-function faceGeo(f: FaceRect): FaceGeo {
+/** r0 = 로고 원 반지름. 모든 면이 같은 크기를 쓰도록 바깥에서 받음 */
+function faceGeo(f: FaceRect, r0: number): FaceGeo {
   const m = Math.min(f.w, f.h);
-  const r0 = m * 0.2;
   return { f, cx: f.x + f.w / 2, cy: f.y + f.h / 2, r0, rMax: Math.hypot(f.w, f.h) / 2 + m * 0.2, bw: Math.max(10, m * 0.16) };
 }
 
@@ -99,7 +99,9 @@ export function buildLayers(l: Led, lay: Layout, opt: GuideOptions, st: RenderSt
   const base = mk(W, H), top = mk(W, H);
   const C = GUIDE_COLORS;
   const u = clamp(Math.min(l.cabinet.pxW, l.cabinet.pxH) / 128, 0.4, 4);
-  const geo = lay.faces.map(faceGeo);
+  // 로고 원은 모든 면에서 같은 크기: 가장 작은 면에 맞춤
+  const rLogo = Math.min(...lay.faces.map((f) => Math.min(f.w, f.h))) * 0.2;
+  const geo = lay.faces.map((f) => faceGeo(f, rLogo));
 
   const b = base.getContext('2d')!;
   b.setTransform(scale, 0, 0, scale, 0, 0);

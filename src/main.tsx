@@ -15,7 +15,7 @@ import { isUnlocked } from './lock';
 import { loadGuideFonts } from './render';
 import { restoreSyncMeta, needsBackup } from './sync';
 import { createSample } from './sample';
-import { Icon } from './ui/common';
+import { Icon, CalcBar } from './ui/common';
 import { Lock } from './ui/Lock';
 import { Home } from './ui/Home';
 import { Projects } from './ui/Projects';
@@ -102,6 +102,7 @@ function App() {
           </div>
         </div>
       )}
+      <CalcBar />
       {s.toast && <div class="toast">{s.toast}</div>}
       {s.saveFallback && (
         <div class="fallback">

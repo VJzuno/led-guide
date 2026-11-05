@@ -1,8 +1,9 @@
 import type { Led, GuideKind, ExportRecord } from './types';
 import { inputLayout, outputLayout, fileName, MAX_CANVAS_PX, type Layout } from './layout';
 import { drawGuide, buildLayers, loadLogo, type RenderStyle, type Layers } from './render';
-import { encodeVideo, type VideoVariant } from './video';
+import { encodeVideo, encodeCandidates, type VideoVariant } from './video';
 import { addExport } from './db';
+import { makeZip } from './zip';
 import { state, uid, refreshExports, updateLed, toast, set } from './store';
 
 export const layoutFor = (l: Led, kind: GuideKind): Layout => (kind === 'IN' ? inputLayout(l) : outputLayout(l));
@@ -73,10 +74,53 @@ export async function exportPng(l: Led, kind: GuideKind) {
   await deliver(blob, name);
 }
 
+/** 여러 LED 한 번에 PNG 추출 (기록은 남기고, 저장은 한꺼번에) */
+export async function exportPngMany(leds: Led[], kinds: GuideKind[], onProgress?: (done: number, total: number) => void) {
+  const files: { name: string; blob: Blob }[] = [];
+  const total = leds.length * kinds.length;
+  for (const l of leds) for (const kind of kinds) {
+    const { canvas, lay } = await renderToCanvas(l, kind);
+    const blob = await toBlob(canvas);
+    const name = fileName(l, kind, lay.W, lay.H);
+    await record(l, kind, blob, name, lay.W, lay.H, 'png');
+    files.push({ name, blob });
+    onProgress?.(files.length, total);
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  await deliverMany(files);
+}
+
+/** 여러 파일 저장: 아이폰은 공유 시트에 한꺼번에(사진에 저장 / 파일에 저장), PC는 ZIP 하나로 */
+export async function deliverMany(files: { name: string; blob: Blob }[]) {
+  if (!files.length) return;
+  if (files.length === 1) return deliver(files[0].blob, files[0].name);
+  const fs = files.map((f) => new File([f.blob], f.name, { type: f.blob.type || 'image/png' }));
+  if (isIOS() && navigator.canShare?.({ files: fs })) {
+    try { await navigator.share({ files: fs }); return; } catch (e: any) { if (e?.name === 'AbortError') return; }
+  }
+  const zip = await makeZip(files);
+  const d = new Date(), p = (n: number) => String(n).padStart(2, '0');
+  await deliver(zip, `LGM_${files.length}files_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.zip`);
+}
+
 /** 영상 추출: LOOP(링이 계속 퍼짐) / BUILD(하나씩 생기는 버전) */
 export async function exportVideo(l: Led, kind: GuideKind, variant: VideoVariant, onProgress: (p: number) => void) {
-  const L = await layersFor(l, kind, 1);
-  const blob = await encodeVideo(L, variant, onProgress);
+  // 인코더 한도를 넘으면 가능한 최대 크기로 줄여서 (비율 유지). 큰 크기부터 실제로 인코딩해 보고 실패하면 다음 크기
+  const lay = layoutFor(l, kind);
+  await ensureFontsFor(l);
+  const st = await renderStyle(l);
+  let blob: Blob | null = null, L: Layers | null = null, lastErr: unknown = null;
+  for (const c of await encodeCandidates(lay.W, lay.H)) {
+    if (c.scale < 1) toast(`원본 ${lay.W}×${lay.H}은 이 기기에서 영상으로 못 만들어서 ${c.w}×${c.h}로 줄여 만드는 중…`);
+    try {
+      L = buildLayers(l, lay, optionsFor(l, kind), st, c.scale);
+      onProgress(0);
+      blob = await encodeVideo(L, variant, onProgress);
+      break;
+    } catch (e) { lastErr = e; console.warn('영상 인코딩 실패, 더 작은 크기로 다시 시도', c, e); }
+  }
+  if (!blob || !L) throw lastErr instanceof Error ? lastErr : new Error('영상 만들기 실패');
+  if (L.scale < 1) toast(`${L.W}×${L.H}로 줄여서 저장했습니다 (원본 ${lay.W}×${lay.H})`);
   const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
   const name = fileName(l, kind, L.W, L.H).replace(/\.png$/, `_${variant}.${ext}`);
   await record(l, kind, blob, name, L.W, L.H, ext, variant);
@@ -84,7 +128,7 @@ export async function exportVideo(l: Led, kind: GuideKind, variant: VideoVariant
 }
 
 export async function deliver(blob: Blob, name: string) {
-  const type = blob.type || (name.endsWith('.mp4') ? 'video/mp4' : 'image/png');
+  const type = blob.type || (name.endsWith('.mp4') ? 'video/mp4' : name.endsWith('.zip') ? 'application/zip' : 'image/png');
   const file = new File([blob], name, { type });
   if (isIOS() && navigator.canShare?.({ files: [file] })) {
     try {

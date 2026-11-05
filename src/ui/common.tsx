@@ -5,6 +5,7 @@ import { renderToCanvas, layersFor, layoutFor, exportPng, exportVideo } from '..
 import { useStore, toast, updateLed } from '../store';
 import { drawFrame, buildTimeline, buildDuration, motionOf, MOTION, DEFAULT_LOGO_URL, type Layers } from '../render';
 import { snapPos } from '../layout';
+import { evalExpr, isExpr } from '../calc';
 import type { VideoVariant } from '../video';
 
 export const go = (path: string) => { location.hash = '#' + path; };
@@ -26,7 +27,42 @@ export function TopBar({ title, sub, back, right }: { title: string; sub?: strin
   );
 }
 
-/** 숫자 입력칸: 입력 중 문자열 유지, 유효할 때만 반영 */
+/* ---------- 수식 입력용 연산자 바 (터치 기기에서 숫자 칸을 누르면 키보드 위에 뜸) ---------- */
+let calcTarget: HTMLInputElement | null = null;
+const calcSubs = new Set<() => void>();
+const setCalcTarget = (el: HTMLInputElement | null) => { calcTarget = el; calcSubs.forEach((f) => f()); };
+
+export function CalcBar() {
+  const [, force] = useState(0);
+  const [bottom, setBottom] = useState(0);
+  useEffect(() => {
+    const f = () => force((n) => n + 1);
+    calcSubs.add(f);
+    const vv = window.visualViewport;
+    const place = () => { if (vv) setBottom(Math.max(0, window.innerHeight - vv.height - vv.offsetTop)); };
+    vv?.addEventListener('resize', place); vv?.addEventListener('scroll', place); place();
+    return () => { calcSubs.delete(f); vv?.removeEventListener('resize', place); vv?.removeEventListener('scroll', place); };
+  }, []);
+  const coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
+  if (!calcTarget || !coarse) return null;
+  const put = (ch: string) => {
+    const el = calcTarget!;
+    const s = el.selectionStart ?? el.value.length, e = el.selectionEnd ?? el.value.length;
+    el.setRangeText(ch, s, e, 'end');
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  const keys: [string, string][] = [['÷', '/'], ['×', '*'], ['−', '-'], ['+', '+'], ['(', '('], [')', ')']];
+  return (
+    <div class="calc-bar" style={{ bottom: bottom + 'px' }} onPointerDown={(e) => e.preventDefault()}>
+      {keys.map(([label, ch]) => (
+        <button key={ch} onPointerDown={(e) => { e.preventDefault(); put(ch); }}>{label}</button>
+      ))}
+      <button class="eq" onPointerDown={(e) => { e.preventDefault(); calcTarget?.blur(); }}>=</button>
+    </div>
+  );
+}
+
+/** 숫자 입력칸: 입력 중 문자열 유지, 유효할 때만 반영. 230/2 같은 수식도 계산 */
 export function NumInput({ value, onChange, min = 0, int = true, aria }: {
   value: number; onChange: (v: number) => void; min?: number; int?: boolean; aria?: string;
 }) {
@@ -34,24 +70,32 @@ export function NumInput({ value, onChange, min = 0, int = true, aria }: {
   const focused = useRef(false);
   useEffect(() => { if (!focused.current) setDraft(String(value)); }, [value]);
   const parse = (s: string) => {
-    const n = int ? parseInt(s, 10) : parseFloat(s.replace(',', '.'));
-    return Number.isFinite(n) && n >= min ? n : null;
+    const v = evalExpr(s);
+    if (v === null) return null;
+    const n = int ? Math.round(v) : Math.round(v * 1000) / 1000;
+    return n >= min ? n : null;
   };
-  const invalid = parse(draft) === null;
+  const result = parse(draft);
+  const invalid = result === null;
+  const showEq = focused.current && isExpr(draft) && result !== null;
   return (
-    <input
-      class={'input num' + (invalid ? ' invalid' : '')} aria-label={aria}
-      type="text" inputMode="decimal" enterKeyHint="done" autoComplete="off"
-      value={draft}
-      onFocus={(e) => { focused.current = true; (e.target as HTMLInputElement).select(); }}
-      onBlur={() => { focused.current = false; setDraft(String(value)); }}
-      onInput={(e) => {
-        const s = (e.target as HTMLInputElement).value;
-        setDraft(s);
-        const n = parse(s);
-        if (n !== null && n !== value) onChange(n);
-      }}
-    />
+    <span class="num-wrap">
+      <input
+        class={'input num' + (invalid ? ' invalid' : '')} aria-label={aria}
+        type="text" inputMode="decimal" enterKeyHint="done" autoComplete="off"
+        value={draft}
+        onFocus={(e) => { focused.current = true; setCalcTarget(e.target as HTMLInputElement); (e.target as HTMLInputElement).select(); }}
+        onBlur={() => { focused.current = false; if (calcTarget) setCalcTarget(null); setDraft(String(value)); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        onInput={(e) => {
+          const s = (e.target as HTMLInputElement).value;
+          setDraft(s);
+          const n = parse(s);
+          if (n !== null && n !== value) onChange(n);
+        }}
+      />
+      {showEq && <span class="num-eq">= {result}</span>}
+    </span>
   );
 }
 
@@ -485,4 +529,35 @@ export function MotionControls({ led }: { led: Led }) {
       {changed && <button class="btn ghost block" style="margin-top:8px" onClick={() => updateLed(led.id, (x) => { delete x.motion; return x; })}>영상 설정 초기화</button>}
     </div>
   );
+}
+
+/** 여러 개 선택: 탭/클릭 = 하나 토글, Shift+클릭 = 범위, ⌘/Ctrl+클릭 = 하나 토글.
+ *  선택 모드가 아닐 때 Shift/⌘ 클릭하면 자동으로 선택 모드로 들어감 */
+export function useSelection(order: string[]) {
+  const [mode, setMode] = useState(false);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const anchor = useRef<string | null>(null);
+  const live = new Set(order);
+  const picked = [...sel].filter((id) => live.has(id));
+  /** true 를 돌려주면 클릭을 선택으로 처리한 것 (이동하지 않음) */
+  const click = (id: string, e: { shiftKey?: boolean; metaKey?: boolean; ctrlKey?: boolean }) => {
+    const multi = e.shiftKey || e.metaKey || e.ctrlKey;
+    if (!mode && !multi) return false;
+    if (!mode) setMode(true);
+    setSel((prev) => {
+      const next = new Set(prev);
+      if (e.shiftKey && anchor.current && live.has(anchor.current)) {
+        const a = order.indexOf(anchor.current), b = order.indexOf(id);
+        const [lo, hi] = a < b ? [a, b] : [b, a];
+        for (let i = lo; i <= hi; i++) next.add(order[i]);
+      } else if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    if (!e.shiftKey) anchor.current = id;
+    return true;
+  };
+  const setMany = (ids: string[], on: boolean) => setSel((prev) => { const n = new Set(prev); ids.forEach((i) => (on ? n.add(i) : n.delete(i))); return n; });
+  const exit = () => { setMode(false); setSel(new Set()); anchor.current = null; };
+  return { mode, setMode, picked, has: (id: string) => sel.has(id), click, setMany, all: () => setSel(new Set(order)), exit };
 }

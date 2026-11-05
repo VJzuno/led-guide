@@ -272,3 +272,21 @@ details.sec[open] > summary .chev { transform: rotate(90deg); }
 .tab-ic { position: relative; display: inline-flex; }
 .tab-ic .dot { position: absolute; top: -2px; right: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 label.btn.disabled { opacity: .35; pointer-events: none; }
+
+/* 수식 입력 */
+.num-wrap { position: relative; display: block; min-width: 0; flex: 1; }
+.num-wrap .input { width: 100%; }
+.num-eq { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font: 600 11px var(--f-mono); color: var(--accent); pointer-events: none; }
+.calc-bar { position: fixed; left: 0; right: 0; z-index: 140; display: flex; gap: 6px; padding: 6px 8px; background: #1a1625; border-top: 1px solid var(--line); }
+.calc-bar button { flex: 1; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: #000; color: #fff; font: 600 20px var(--f-mono); }
+.calc-bar button.eq { background: var(--accent); border-color: var(--accent); }
+
+/* 여러 개 선택 */
+.sel-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--tab-h) + var(--sab)); z-index: 60; padding: 8px calc(var(--sar) + 12px) 8px calc(var(--sal) + 12px); background: rgba(14,11,29,.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--accent); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sel-bar .count { font: 600 13px var(--f-mono); color: var(--accent); margin-right: auto; }
+.sel-bar .btn { min-height: 40px; padding: 0 12px; font-size: 13px; }
+.screen.selecting { padding-bottom: calc(var(--tab-h) + var(--sab) + 120px); }
+.check { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--soft); flex: none; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: #fff; }
+.check.on { background: var(--accent); border-color: var(--accent); }
+.led-row.sel, .list-item.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 10px; }
+.led-row.selecting { grid-template-columns: 26px 34px 1fr auto; cursor: pointer; }
