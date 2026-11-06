@@ -132,12 +132,12 @@ const toBlob = (c: HTMLCanvasElement) => new Promise<Blob>((r) => c.toBlob((b) =
 
   const st = DRAFTS[DRAFT] || DRAFTS.O;
   (window as any).icons = {
-    'apple-touch-icon.png': await toBlob(await iosIcon(180, st)),
-    'icon-192.png': await toBlob(await pcIcon(192, st)),
-    'icon-512.png': await toBlob(await pcIcon(512, st)),
-    'icon-maskable-512.png': await toBlob(await maskIcon(512, st)),
-    'favicon-32.png': await toBlob(await pcIcon(32, st)),
-    'favicon-16.png': await toBlob(await pcIcon(16, st)),
+    'apple-touch-icon-v2.png': await toBlob(await iosIcon(180, st)),
+    'icon-192-v2.png': await toBlob(await pcIcon(192, st)),
+    'icon-512-v2.png': await toBlob(await pcIcon(512, st)),
+    'icon-maskable-512-v2.png': await toBlob(await maskIcon(512, st)),
+    'favicon-32-v2.png': await toBlob(await pcIcon(32, st)),
+    'favicon-16-v2.png': await toBlob(await pcIcon(16, st)),
   } as Record<string, Blob>;
   (window as any).iconsReady = true;
 })();
