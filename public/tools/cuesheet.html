@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>큐시트 메이커</title>
+<style>
+  /* ZUNO 팔레트: 배경 블랙 · 메인 포인트 #5613C8 · 퍼플 계열은 보조 톤 */
+  :root {
+    color-scheme: dark;
+    --bg: #000000;
+    --panel: #0E0B1D;
+    --border: #3A3A52;
+    --text: #FFFFFF;
+    --muted: #8B7CC7;
+    --accent: #5613C8;
+    --accent-hover: #6A2BE0;
+    --accent-soft: #C9C2E3;
+    --accent-bg: rgba(86, 19, 200, .22);
+    --deep: #2A1E4D;
+    --field: #07060E;
+    --btn: #15112A;
+    --ring: rgba(139, 124, 199, .35);
+  }
+  html { accent-color: var(--accent); }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Apple SD Gothic Neo", "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+  }
+  #app { display: flex; height: 100vh; }
+  .panel { display: flex; flex-direction: column; min-height: 0; }
+  .col-list { width: 250px; border-right: 1px solid var(--border); background: var(--panel); }
+  .col-main { flex: 1; min-width: 400px; }
+  .col-style { width: 310px; border-left: 1px solid var(--border); background: var(--panel); overflow-y: auto; }
+
+  .panel-header { padding: 14px 14px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+  .panel-header h2 { font-size: 13px; margin: 0; font-weight: 600; letter-spacing: .02em; }
+  .count { color: var(--accent-soft); font-size: 11px; }
+  .panel-header h2::before { content: ""; display: inline-block; width: 3px; height: 12px; background: var(--accent); border-radius: 2px; margin-right: 8px; vertical-align: -1px; }
+
+  #itemList { flex: 1; overflow-y: auto; padding: 6px; }
+  .item-row { display: flex; align-items: center; gap: 6px; padding: 8px; border-radius: 6px; cursor: pointer; margin-bottom: 2px; border: 1px solid transparent; }
+  .item-row:hover { background: var(--deep); border-color: rgba(139, 124, 199, .45); }
+  .item-row.selected { background: var(--accent-bg); border-color: var(--accent); }
+  .item-row .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-row .label.empty { color: var(--muted); font-style: italic; }
+  .item-row .del { color: var(--muted); background: none; border: none; cursor: pointer; font-size: 14px; padding: 2px 4px; }
+  .item-row .del:hover { color: #ff6666; }
+  .item-row .pick { flex-shrink: 0; margin: 0; cursor: pointer; }
+  .item-row .dl { color: var(--muted); background: none; border: none; cursor: pointer; font-size: 13px; padding: 2px 4px; }
+  .item-row .dl:hover { color: var(--accent-soft); background: none; }
+  .item-thumb { width: 54px; height: 41px; flex-shrink: 0; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); background: #000; }
+  .item-thumb canvas { width: 100%; height: 100%; display: block; }
+
+  .list-actions { padding: 10px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); }
+
+  button { background: var(--btn); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12.5px; }
+  button:hover { background: var(--deep); border-color: var(--accent-soft); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+
+  .main-inner { padding: 16px; display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  textarea { width: 100%; resize: vertical; background: var(--field); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13.5px; line-height: 1.5; }
+  #titleEditor { height: 130px; }
+
+  .preview-wrap { flex: 1; margin-top: 14px; border-radius: 8px; background: #050505; display: flex; align-items: center; justify-content: center; min-height: 180px; border: 1px solid var(--border); overflow: hidden; }
+  #previewCanvas { max-width: 100%; max-height: 100%; }
+  .hint { color: var(--muted); font-size: 11.5px; margin-top: 8px; }
+  textarea:focus, select:focus, .row input[type=text]:focus, .row input[type=number]:focus, #numberEditor:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring); }
+  .auto-label { width: auto !important; display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11.5px; cursor: pointer; }
+
+  .style-body { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+  details.panel-section { border: 1px solid var(--border); border-radius: 8px; padding: 0 12px 12px; }
+  details.panel-section > summary { list-style: none; cursor: pointer; user-select: none; color: var(--accent-soft); font-size: 11px; padding: 10px 4px; display: flex; align-items: center; justify-content: space-between; }
+  details.panel-section > summary::-webkit-details-marker { display: none; }
+  details.panel-section > summary::after { content: "▾"; font-size: 10px; transition: transform .15s ease; color: var(--accent); }
+  details.panel-section:not([open]) > summary::after { transform: rotate(-90deg); }
+  details.panel-section:not([open]) { padding-bottom: 0; }
+  details.panel-section:not([open]) > summary { padding-bottom: 10px; }
+  .row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .row label { width: 68px; color: var(--muted); font-size: 12px; flex-shrink: 0; }
+  .row input[type=number] { width: 70px; background: var(--field); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 5px 6px; }
+  .row input[type=range] { flex: 1; min-width: 0; }
+  .checkbox-row label { flex: 1; min-width: 0; white-space: normal; line-height: 1.35; }
+  .row input[type=color] { width: 34px; height: 26px; border: 1px solid var(--border); border-radius: 4px; background: none; padding: 0; }
+  select, .row input[type=text] { width: 100%; background: var(--field); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 6px; font-size: 12.5px; }
+  .val { display: none; }
+  .val-wrap { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+  .row input[type=number].val-input { width: 54px; text-align: right; padding: 4px 6px; font-size: 12px; }
+  .val-unit { color: var(--muted); font-size: 11.5px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; }
+
+  #log { font-size: 11.5px; color: var(--muted); margin-top: 6px; white-space: pre-wrap; }
+  .footer-brand { text-align: center; padding: 16px 0 4px; color: var(--muted); font-size: 10px; letter-spacing: .08em; }
+
+  /* ----- 공연 목록(홈) ----- */
+  body[data-view="home"] #app { display: none; }
+  body:not([data-view="home"]) #home { display: none; }
+  #home { min-height: 100vh; background: var(--bg); }
+  .home-top { display: flex; align-items: center; gap: 14px; padding: 14px 28px; border-bottom: 1px solid var(--border); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+  .home-brand { font-weight: 700; font-size: 15px; letter-spacing: .01em; display: flex; align-items: center; gap: 10px; margin-right: auto; }
+  .home-logo { width: 22px; height: 22px; border-radius: 6px; background: var(--accent); display: inline-block; position: relative; }
+  .home-logo::before, .home-logo::after { content: ""; position: absolute; left: 5px; right: 5px; height: 2px; background: #fff; border-radius: 1px; }
+  .home-logo::before { top: 7px; } .home-logo::after { top: 12px; right: 9px; }
+  #showSearch { width: 240px; background: var(--field); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; }
+  #showSearch:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring); }
+  .home-main { max-width: 1240px; margin: 0 auto; padding: 32px 28px 60px; }
+  .home-main h1 { font-size: 22px; margin: 0 0 6px; font-weight: 700; }
+  .home-sub { color: var(--muted); margin: 0 0 26px; font-size: 13px; }
+  .show-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px; }
+  .show-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; cursor: pointer; transition: border-color .15s ease, transform .15s ease; }
+  .show-card:hover { border-color: var(--accent); }
+  .show-preview { aspect-ratio: 4 / 3; background: #050505; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); overflow: hidden; }
+  .show-preview img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .show-preview .ph { color: var(--deep); font-size: 44px; font-weight: 800; letter-spacing: -.02em; padding: 0 16px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .show-info { display: flex; align-items: center; gap: 8px; padding: 12px 12px 12px 14px; }
+  .show-meta { flex: 1; min-width: 0; }
+  .show-name { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .show-sub { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+  .show-menu-btn { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; padding: 4px 8px; border-radius: 6px; }
+  .show-menu-btn:hover { background: var(--deep); color: var(--text); border: none; }
+  .show-card.new { background: transparent; border: 1.5px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; aspect-ratio: auto; color: var(--accent-soft); gap: 8px; padding: 40px 0; }
+  .show-card.new:hover { border-color: var(--accent); background: var(--accent-bg); }
+  .show-card.new .plus { font-size: 34px; line-height: 1; }
+  .show-card.new .t { font-size: 13px; font-weight: 600; }
+  .home-empty { color: var(--muted); font-size: 13px; padding: 10px 0 0; }
+  #showMenu { position: fixed; z-index: 30; min-width: 150px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 5px; box-shadow: 0 10px 30px rgba(0,0,0,.5); display: none; }
+  #showMenu.open { display: block; }
+  #showMenu button { display: block; width: 100%; text-align: left; background: none; border: none; padding: 8px 10px; border-radius: 5px; font-size: 12.5px; }
+  #showMenu button:hover { background: var(--accent-bg); border: none; }
+  #showMenu button.danger { color: #ff7b7b; }
+  #showMenu hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+  .dialog-input { width: 100%; background: var(--field); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 13.5px; }
+  .dialog-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring); }
+  button.danger-fill { background: #e5484d; border-color: #e5484d; color: #fff; font-weight: 600; }
+  button.danger-fill:hover { background: #cf3a3f; border-color: #cf3a3f; }
+  /* ----- 에디터 상단 공연 바 ----- */
+  .show-bar { padding: 10px 10px 0; }
+  .show-bar button { background: none; border: none; color: var(--accent-soft); padding: 4px 6px; font-size: 12px; }
+  .show-bar button:hover { background: var(--accent-bg); border: none; }
+  .show-title { padding: 2px 12px 10px; }
+  .show-title input { width: 100%; background: transparent; color: var(--text); border: 1px solid transparent; border-radius: 6px; padding: 5px 6px; font-size: 15px; font-weight: 700; }
+  .show-title input:hover { border-color: var(--border); }
+  .show-title input:focus { outline: none; border-color: var(--accent); background: var(--field); }
+
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; width: 540px; max-width: 92vw; padding: 20px; }
+  .modal h3 { margin: 0 0 8px; font-size: 14px; }
+  .modal p { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+  .modal textarea { height: 240px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+  .gallery-modal { width: 92vw; max-width: 1300px; max-height: 86vh; display: flex; flex-direction: column; }
+  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; overflow-y: auto; padding: 2px; margin-top: 4px; }
+  .gallery-cell { cursor: pointer; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #050505; transition: border-color .15s ease; }
+  .gallery-cell:hover { border-color: var(--accent); }
+  .gallery-cell canvas { display: block; width: 100%; height: auto; }
+  .gallery-cell .gallery-label { padding: 6px 8px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gallery-empty { color: var(--muted); font-size: 12.5px; padding: 20px 4px; }
+
+  /* ----- 순서 바꾸기 (드래그 손잡이) ----- */
+  .item-row .grip { flex-shrink: 0; width: 18px; align-self: stretch; display: flex; align-items: center; justify-content: center; color: var(--muted); cursor: grab; touch-action: none; user-select: none; font-size: 13px; letter-spacing: -2px; }
+  .item-row.dragging { opacity: .45; }
+  .item-row.drop-before { box-shadow: inset 0 2px 0 var(--accent-soft); }
+  .item-row.drop-after { box-shadow: inset 0 -2px 0 var(--accent-soft); }
+  .btn-row { display: flex; gap: 6px; }
+  .btn-row > button { flex: 1; }
+
+  /* ----- 폰 · 좁은 화면: 세로로 쌓기 (미리보기 → 곡 목록 → 스타일) ----- */
+  @media (max-width: 900px) {
+    html, body { height: auto; }
+    #app { flex-direction: column; height: auto; }
+    /* 곡 목록 칸을 풀어서: 공연 바·이름 → 편집·미리보기 → 곡 목록 → 스타일 순서 */
+    .col-list { display: contents; }
+    .show-bar { order: -3; background: var(--panel); }
+    .show-title { order: -2; background: var(--panel); border-bottom: 1px solid var(--border); }
+    .col-main { order: -1; min-width: 0; }
+    .col-list > .panel-header { border-top: 1px solid var(--border); background: var(--panel); }
+    #itemList, .list-actions { background: var(--panel); }
+    .col-style { width: auto; border: 0; border-top: 1px solid var(--border); }
+    .col-style { overflow: visible; }
+    #itemList { max-height: 55vh; }
+    .main-inner { height: auto; padding: 12px max(12px, env(safe-area-inset-right, 0px)) 12px max(12px, env(safe-area-inset-left, 0px)); }
+    .preview-wrap { flex: none; aspect-ratio: 4 / 3; min-height: 0; }
+    #titleEditor { height: 96px; }
+    #itemPaletteSelect { width: 120px !important; }
+    .item-row { padding: 10px 8px; }
+    .item-row .dl, .item-row .del { padding: 6px 8px; font-size: 16px; }
+    .home-top { flex-wrap: wrap; padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); gap: 10px; }
+    #showSearch { width: 100%; order: 3; }
+    .home-main { padding: 20px max(16px, env(safe-area-inset-right, 0px)) 80px max(16px, env(safe-area-inset-left, 0px)); }
+    .show-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .list-actions { padding-bottom: 72px; }
+    .style-body { padding-bottom: 80px; }
+  }
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="../icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<script src="hub.js"></script>
+</head>
+<body>
+
+<div id="app">
+  <div class="panel col-list">
+    <div class="show-bar"><button id="backBtn" title="공연 목록으로">← 공연 목록</button></div>
+    <div class="show-title"><input type="text" id="showName" placeholder="공연 이름" spellcheck="false"></div>
+    <div class="panel-header"><h2>큐시트</h2><span class="count" id="itemCount">0개</span></div>
+    <div id="itemList"></div>
+    <div class="list-actions">
+      <button id="addItemBtn">+ 항목 추가</button>
+      <button id="bulkImportBtn">여러 개 한번에 붙여넣기</button>
+      <button id="autoNumberBtn" title="목록 순서대로 곡번호를 #1, #2 … 로 채워요">곡번호 자동 매기기 (#1, #2…)</button>
+      <button id="galleryBtn">전체 미리보기</button>
+      <div style="display:flex; gap:6px;">
+        <button id="toggleAllBtn" style="flex:1;">전체 선택</button>
+        <button id="exportCheckedBtn" class="primary" style="flex:1.4;" disabled>선택 저장</button>
+      </div>
+      <button id="resetAllBtn">이 공연 초기화</button>
+      <div class="hint" style="margin-top:0;">이 브라우저에 자동 저장됩니다</div>
+    </div>
+  </div>
+
+  <div class="panel col-main">
+    <div class="main-inner">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <strong style="font-size:13px;">곡번호 &amp; 곡제목</strong>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <label style="display:flex; align-items:center; gap:5px; color:var(--muted); font-size:12px; cursor:pointer;">
+            <input type="checkbox" id="numberToggle" checked> 곡번호 표시
+          </label>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="hint" style="margin:0;">팔레트</span>
+            <select id="itemPaletteSelect" style="width:140px;"></select>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+        <label style="width:58px; color:var(--muted); font-size:12px; flex-shrink:0;">곡번호</label>
+        <input type="text" id="numberEditor" placeholder="예: #1" style="flex:1; background:var(--field); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size:13.5px;">
+      </div>
+      <div style="margin-top:8px;">
+        <textarea id="titleEditor" placeholder="곡 제목 (줄바꿈·띄어쓰기 그대로 반영)"></textarea>
+      </div>
+      <div class="preview-wrap"><canvas id="previewCanvas"></canvas></div>
+      <div class="hint">미리보기는 실제 저장되는 이미지와 동일한 비율로 표시됩니다.</div>
+    </div>
+  </div>
+
+  <div class="panel col-style">
+    <div class="panel-header"><h2>스타일 &amp; 내보내기</h2></div>
+    <div class="style-body">
+
+      <details class="panel-section" id="sec-canvas" open>
+        <summary>캔버스 크기 (px)</summary>
+        <div class="row">
+          <label>가로</label>
+          <input type="number" id="canvasWidth" value="1440" min="1" step="1">
+          <span>x</span>
+          <input type="number" id="canvasHeight" value="1080" min="1" step="1">
+        </div>
+      </details>
+
+      <details class="panel-section" id="sec-border" open>
+        <summary>테두리</summary>
+        <div class="row">
+          <label>두께</label>
+          <input type="range" id="borderWidth" min="0" max="80" value="50">
+          <span class="val" id="borderWidthVal">50</span>
+        </div>
+      </details>
+
+      <details class="panel-section" id="sec-palette" open>
+        <summary>색상 팔레트</summary>
+        <div class="row"><label>팔레트</label><select id="paletteSelect"></select></div>
+        <div class="row"><input type="text" id="paletteName" placeholder="팔레트 이름"></div>
+        <div class="row"><label>배경색</label><input type="color" id="paletteBg" value="#000000"></div>
+        <div class="row"><label>테두리색</label><input type="color" id="paletteBorder" value="#ffffff"></div>
+        <div class="row"><label>글자색</label><input type="color" id="paletteText" value="#ffffff"></div>
+        <div class="row">
+          <label>곡번호색</label>
+          <input type="color" id="paletteNumber" value="#ffffff">
+          <label class="auto-label"><input type="checkbox" id="paletteNumberAuto" checked> 테두리색 따라 자동</label>
+        </div>
+        <div class="row" style="gap:8px;">
+          <button id="addPaletteBtn" style="flex:1;">+ 새 팔레트</button>
+          <button id="deletePaletteBtn" style="flex:1;">삭제</button>
+        </div>
+        <div class="hint">항목마다 다른 팔레트를 지정하려면, 가운데 텍스트 편집 영역 위의 "팔레트" 선택창을 사용하세요.</div>
+      </details>
+
+      <details class="panel-section" id="sec-text" open>
+        <summary>텍스트</summary>
+        <div class="row"><label>폰트</label><select id="fontSelect"></select></div>
+        <div class="row"><label></label><input type="text" id="fontCustom" placeholder="직접 입력 (설치된 폰트명)"></div>
+        <div class="row"><label>크기</label><input type="range" id="fontSize" min="10" max="400" value="250"><span class="val" id="fontSizeVal">250</span></div>
+        <div class="row"><label>곡번호크기</label><input type="range" id="numberFontSize" min="10" max="400" value="150"><span class="val" id="numberFontSizeVal">150</span></div>
+        <div class="row"><label>곡번호굵기</label>
+          <select id="numberFontWeight">
+            <option value="400">보통</option>
+            <option value="500">약간 굵게</option>
+            <option value="600">중간 굵게</option>
+            <option value="700" selected>굵게</option>
+            <option value="800">더 굵게</option>
+            <option value="900">매우 굵게</option>
+          </select>
+        </div>
+        <div class="row"><label>굵기</label>
+          <select id="fontWeight">
+            <option value="400">보통</option>
+            <option value="500">약간 굵게</option>
+            <option value="600">중간 굵게</option>
+            <option value="700" selected>굵게</option>
+            <option value="800">더 굵게</option>
+            <option value="900">매우 굵게</option>
+          </select>
+        </div>
+        <div class="row"><label>자간</label><input type="range" id="letterSpacing" min="-20" max="80" value="-15"><span class="val" id="letterSpacingVal">-15</span></div>
+        <div class="row"><label>행간</label><input type="range" id="lineSpacing" min="80" max="250" value="80"><span class="val" id="lineSpacingVal">80%</span></div>
+        <div class="row"><label>여백</label><input type="range" id="padding" min="0" max="500" value="100"><span class="val" id="paddingVal">100</span></div>
+        <div class="row checkbox-row"><input type="checkbox" id="wrapToggle" checked><label style="width:auto;">넘치면 자동 줄바꿈</label></div>
+        <div class="row checkbox-row"><input type="checkbox" id="autoFitToggle" checked><label style="width:auto;">길면 폰트 크기 자동 축소</label></div>
+        <div class="row checkbox-row"><input type="checkbox" id="fitMaxToggle"><label style="width:auto;">곡제목을 칸에 꽉 차는 최대 크기로</label></div>
+        <div class="hint" style="margin-top:0;">켜면 제목마다 크기가 달라지고, 위 "크기" 값은 무시돼요. 곡번호 크기는 그대로예요.</div>
+      </details>
+
+      <details class="panel-section" id="sec-artist" open>
+        <summary>아티스트명 (상단)</summary>
+        <div class="row checkbox-row"><input type="checkbox" id="artistToggle" checked><label style="width:auto;">상단에 아티스트명 표시</label></div>
+        <div class="row"><label>이름</label><input type="text" id="artistText" placeholder="예: SOYEON" value=""></div>
+        <div class="row"><label>폰트</label><select id="artistFontSelect"></select></div>
+        <div class="row"><label></label><input type="text" id="artistFontCustom" placeholder="직접 입력 (설치된 폰트명)"></div>
+        <div class="row"><label>색상</label><input type="color" id="artistColor" value="#ff5a1f"></div>
+        <div class="row"><label>크기</label><input type="range" id="artistFontSize" min="10" max="300" value="90"><span class="val" id="artistFontSizeVal">90</span></div>
+        <div class="row"><label>자간</label><input type="range" id="artistLetterSpacing" min="-20" max="80" value="-15"><span class="val" id="artistLetterSpacingVal">-15</span></div>
+        <div class="row"><label>세로위치</label><input type="range" id="artistOffset" min="0" max="1000" value="60"><span class="val" id="artistOffsetVal">60</span></div>
+      </details>
+
+      <details class="panel-section" id="sec-output" open>
+        <summary>출력</summary>
+        <div class="row" style="flex-direction:column; align-items:stretch; gap:8px;">
+          <button id="chooseFolderBtn">폴더 선택 (Chrome/Edge)</button>
+          <span class="hint" id="folderLabel">선택 안 됨</span>
+          <button id="generateFolderBtn" class="primary">선택한 폴더에 일괄 저장</button>
+          <button id="generateDownloadBtn">다운로드로 일괄 저장 (모든 브라우저)</button>
+          <button id="generateZipBtn">ZIP 하나로 저장 (아이폰·모든 브라우저)</button>
+        </div>
+        <div id="log"></div>
+      </details>
+
+      <div class="footer-brand">CUESHEET MAKER</div>
+    </div>
+  </div>
+</div>
+
+<div id="home">
+  <header class="home-top">
+    <div class="home-brand"><span class="home-logo"></span>큐시트 메이커</div>
+    <input type="search" id="showSearch" placeholder="공연 검색">
+    <button id="importShowBtn" title="다른 기기에서 내보낸 공연 파일(.json) 불러오기">공연 가져오기</button>
+    <input type="file" id="importShowFile" accept=".json,application/json" hidden>
+    <button id="newShowBtn" class="primary">+ 새 공연</button>
+  </header>
+  <main class="home-main">
+    <h1>내 공연</h1>
+    <p class="home-sub">공연을 열어서 곡별 큐시트 썸네일을 만들어요. 공연마다 곡 목록과 스타일이 따로 저장돼요.</p>
+    <div id="showGrid" class="show-grid"></div>
+  </main>
+</div>
+
+<div id="showMenu"></div>
+
+<div class="modal-backdrop" id="dialogModal">
+  <div class="modal" style="width:420px;">
+    <h3 id="dialogTitle"></h3>
+    <p id="dialogDesc"></p>
+    <input type="text" id="dialogInput" class="dialog-input" spellcheck="false">
+    <div class="modal-actions">
+      <button id="dialogCancel">취소</button>
+      <button id="dialogOk" class="primary">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="bulkModal">
+  <div class="modal">
+    <h3>여러 썸네일 한번에 추가</h3>
+    <p>각 썸네일 곡제목을 단독 줄 "---" 로 구분해서 붙여넣으세요. 줄바꿈과 띄어쓰기는 그대로 유지됩니다. 첫 줄이 <b>#1 제목</b>, <b>1. 제목</b>, <b>#1</b> 처럼 번호로 시작하면 곡번호로 따로 넣어요.</p>
+    <textarea id="bulkText" placeholder="첫번째 썸네일 텍스트&#10;여러 줄도 가능&#10;---&#10;두번째 썸네일 텍스트&#10;---&#10;세번째"></textarea>
+    <div class="modal-actions">
+      <button id="bulkCancelBtn">취소</button>
+      <button id="bulkImportConfirmBtn" class="primary">가져오기</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="galleryModal">
+  <div class="modal gallery-modal">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <h3 style="margin:0;">전체 미리보기</h3>
+      <button id="galleryCloseBtn">닫기</button>
+    </div>
+    <p>클릭하면 해당 항목 편집으로 이동합니다.</p>
+    <div id="galleryGrid" class="gallery-grid"></div>
+  </div>
+</div>
+
+<script src="vendor/jszip.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  const STORE_KEY = "cuesheet_maker_v1";
+  const LEGACY_KEY = "thumbnail_maker_state_v1";
+
+  function loadStore() {
+    let st = null;
+    try { st = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) {}
+    if (!st || !Array.isArray(st.shows)) {
+      st = { shows: [], currentId: null };
+      // 이전 버전(썸네일 메이커)에서 저장해 둔 작업이 있으면 하나의 공연으로 옮겨온다
+      try {
+        const old = localStorage.getItem(LEGACY_KEY);
+        if (old) {
+          const now = Date.now();
+          st.shows.push({ id: uid(), name: "이전 작업", createdAt: now, updatedAt: now, cover: null, state: JSON.parse(old) });
+        }
+      } catch (e) {}
+    }
+    return st;
+  }
+  let store = loadStore();
+  function saveStore() { try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) {} }
+  function currentShow() { return store.shows.find(sh => sh.id === store.currentId) || null; }
+  const DEFAULT_FONTS = ["Futura","Arial","Helvetica","Georgia","Impact","Verdana","Tahoma","Trebuchet MS","Times New Roman","Courier New"];
+
+  function uid() {
+    if (window.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+    return "id-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+
+  let palettes = [{ id: uid(), name: "기본", bgColor: "#000000", borderColor: "#ffffff", textColor: "#ffffff", numberColor: "#ffffff" }];
+  let selectedPaletteId = palettes[0].id;
+  let items = [{ id: uid(), number: "", title: "", paletteId: palettes[0].id }];
+  let selectedId = items[0].id;
+  let dirHandle = null;
+
+  function el(id) { return document.getElementById(id); }
+
+  const itemListEl = el("itemList");
+  const itemCountEl = el("itemCount");
+  const numberEditor = el("numberEditor");
+  const titleEditor = el("titleEditor");
+  const numberToggleEl = el("numberToggle");
+  const previewCanvas = el("previewCanvas");
+  const offscreen = document.createElement("canvas");
+
+  const canvasWidthInput = el("canvasWidth");
+  const canvasHeightInput = el("canvasHeight");
+  const borderWidthInput = el("borderWidth");
+  const borderWidthVal = el("borderWidthVal");
+  const fontSelect = el("fontSelect");
+  const fontCustom = el("fontCustom");
+  const fontSizeInput = el("fontSize");
+  const fontSizeVal = el("fontSizeVal");
+  const numberFontSizeInput = el("numberFontSize");
+  const numberFontSizeVal = el("numberFontSizeVal");
+  const numberFontWeightSelect = el("numberFontWeight");
+  const fontWeightSelect = el("fontWeight");
+  const letterSpacingInput = el("letterSpacing");
+  const letterSpacingVal = el("letterSpacingVal");
+  const lineSpacingInput = el("lineSpacing");
+  const lineSpacingVal = el("lineSpacingVal");
+  const paddingInput = el("padding");
+  const paddingVal = el("paddingVal");
+  const wrapToggle = el("wrapToggle");
+  const autoFitToggle = el("autoFitToggle");
+  const fitMaxToggle = el("fitMaxToggle");
+  const artistToggleEl = el("artistToggle");
+  const artistTextInput = el("artistText");
+  const artistFontSelect = el("artistFontSelect");
+  const artistFontCustom = el("artistFontCustom");
+  const artistColorInput = el("artistColor");
+  const artistFontSizeInput = el("artistFontSize");
+  const artistFontSizeVal = el("artistFontSizeVal");
+  const artistLetterSpacingInput = el("artistLetterSpacing");
+  const artistLetterSpacingVal = el("artistLetterSpacingVal");
+  const artistOffsetInput = el("artistOffset");
+  const artistOffsetVal = el("artistOffsetVal");
+  const logEl = el("log");
+  const folderLabel = el("folderLabel");
+
+  const SECTION_IDS = ["sec-canvas","sec-border","sec-palette","sec-text","sec-artist","sec-output"];
+  const sectionEls = SECTION_IDS.map(id => el(id)).filter(Boolean);
+
+  const paletteSelectEl = el("paletteSelect");
+  const paletteNameInput = el("paletteName");
+  const paletteBgInput = el("paletteBg");
+  const paletteBorderInput = el("paletteBorder");
+  const paletteTextInput = el("paletteText");
+  const paletteNumberInput = el("paletteNumber");
+  const paletteNumberAutoInput = el("paletteNumberAuto");
+  const addPaletteBtn = el("addPaletteBtn");
+  const deletePaletteBtn = el("deletePaletteBtn");
+  const itemPaletteSelectEl = el("itemPaletteSelect");
+
+  function populateFontSelect(list, targetSelect) {
+    const select = targetSelect || fontSelect;
+    select.innerHTML = "";
+    list.forEach((f) => {
+      const opt = document.createElement("option");
+      opt.value = f; opt.textContent = f;
+      select.appendChild(opt);
+    });
+    select.value = "Futura";
+  }
+  populateFontSelect(DEFAULT_FONTS);
+  populateFontSelect(DEFAULT_FONTS, artistFontSelect);
+
+  function globalSettings() {
+    return {
+      width: Math.max(parseInt(canvasWidthInput.value, 10) || 1, 1),
+      height: Math.max(parseInt(canvasHeightInput.value, 10) || 1, 1),
+      borderWidth: parseFloat(borderWidthInput.value),
+      fontFamily: (fontCustom.value.trim() || fontSelect.value || "Futura"),
+      fontWeight: fontWeightSelect.value,
+      fontSize: parseFloat(fontSizeInput.value),
+      numberFontSize: parseFloat(numberFontSizeInput.value),
+      numberFontWeight: numberFontWeightSelect.value,
+      letterSpacing: parseFloat(letterSpacingInput.value),
+      lineSpacing: parseFloat(lineSpacingInput.value) / 100,
+      padding: parseFloat(paddingInput.value),
+      wrap: wrapToggle.checked,
+      autoFit: autoFitToggle.checked,
+      fitMax: fitMaxToggle.checked,
+      numberEnabled: numberToggleEl.checked,
+      artistEnabled: artistToggleEl.checked,
+      artistText: artistTextInput.value || "",
+      artistFontFamily: (artistFontCustom.value.trim() || artistFontSelect.value || "Futura"),
+      artistColor: artistColorInput.value,
+      artistFontSize: parseFloat(artistFontSizeInput.value),
+      artistLetterSpacing: parseFloat(artistLetterSpacingInput.value),
+      artistOffset: parseFloat(artistOffsetInput.value)
+    };
+  }
+
+  function paletteById(id) { return palettes.find(p => p.id === id) || palettes[0]; }
+  function paletteForItem(item) { return paletteById(item && item.paletteId); }
+
+  // 테두리색을 흰색 쪽으로 살짝 밝게 섞어서 "비슷하지만 구분되는" 색을 만든다
+  function tintColor(hex, amount) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+    if (!m) return hex || "#ffffff";
+    const n = parseInt(m[1], 16);
+    const mix = (c) => Math.round(c + (255 - c) * amount);
+    const r = mix((n >> 16) & 255), g = mix((n >> 8) & 255), b = mix(n & 255);
+    return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+  }
+  function autoNumberColor(p) { return tintColor(p.borderColor, 0.35); }
+  function numberColorForPalette(p) {
+    return p.numberAuto === false ? (p.numberColor || p.textColor) : autoNumberColor(p);
+  }
+
+  function settingsForItem(item) {
+    const g = globalSettings();
+    const p = paletteForItem(item);
+    return { ...g, bgColor: p.bgColor, borderColor: p.borderColor, textColor: p.textColor, numberColor: numberColorForPalette(p) };
+  }
+
+  function scaledSettingsForItem(item, thumbWidth) {
+    const s = settingsForItem(item);
+    const scale = thumbWidth / s.width;
+    const thumbHeight = Math.max(1, Math.round(s.height * scale));
+    return {
+      ...s,
+      width: thumbWidth,
+      height: thumbHeight,
+      borderWidth: s.borderWidth * scale,
+      fontSize: s.fontSize * scale,
+      numberFontSize: s.numberFontSize * scale,
+      // numberFontWeight / numberColor need no scaling
+      padding: s.padding * scale,
+      letterSpacing: s.letterSpacing * scale,
+      artistFontSize: s.artistFontSize * scale,
+      artistOffset: s.artistOffset * scale,
+      artistLetterSpacing: s.artistLetterSpacing * scale
+    };
+  }
+
+  function displayTextForItem(item) {
+    const g = globalSettings();
+    const title = (item && item.title) || "";
+    const number = ((item && item.number) || "").trim();
+    if (g.numberEnabled && number) return number + "\n" + title;
+    return title;
+  }
+
+  function partsForItem(item) {
+    const g = globalSettings();
+    const title = (item && item.title) || "";
+    const number = g.numberEnabled ? ((item && item.number) || "").trim() : "";
+    return { number, title };
+  }
+
+  function populateSelectWithPalettes(selectEl, selectedIdValue) {
+    selectEl.innerHTML = "";
+    palettes.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id; opt.textContent = p.name;
+      selectEl.appendChild(opt);
+    });
+    if (selectedIdValue) selectEl.value = selectedIdValue;
+  }
+
+  function renderPaletteEditor() {
+    populateSelectWithPalettes(paletteSelectEl, selectedPaletteId);
+    const p = paletteById(selectedPaletteId);
+    if (!p) return;
+    paletteNameInput.value = p.name;
+    paletteBgInput.value = p.bgColor;
+    paletteBorderInput.value = p.borderColor;
+    paletteTextInput.value = p.textColor;
+    syncNumberControls(p);
+    deletePaletteBtn.disabled = palettes.length <= 1;
+  }
+
+  function syncNumberControls(p) {
+    paletteNumberAutoInput.checked = p.numberAuto !== false;
+    paletteNumberInput.value = numberColorForPalette(p);
+  }
+
+  function renderItemPaletteSelect() {
+    const item = items.find(i => i.id === selectedId);
+    populateSelectWithPalettes(itemPaletteSelectEl, item ? item.paletteId : null);
+    itemPaletteSelectEl.disabled = !item;
+  }
+
+  paletteSelectEl.addEventListener("change", () => {
+    selectedPaletteId = paletteSelectEl.value;
+    renderPaletteEditor();
+  });
+
+  paletteNameInput.addEventListener("input", () => {
+    const p = paletteById(selectedPaletteId);
+    if (!p) return;
+    p.name = paletteNameInput.value || p.name;
+    populateSelectWithPalettes(paletteSelectEl, selectedPaletteId);
+    populateSelectWithPalettes(itemPaletteSelectEl, (items.find(i => i.id === selectedId) || {}).paletteId);
+    persist();
+  });
+
+  [paletteBgInput, paletteBorderInput, paletteTextInput].forEach(input => {
+    input.addEventListener("input", () => {
+      const p = paletteById(selectedPaletteId);
+      if (!p) return;
+      p.bgColor = paletteBgInput.value;
+      p.borderColor = paletteBorderInput.value;
+      p.textColor = paletteTextInput.value;
+      syncNumberControls(p); // 자동 모드면 테두리색 변경에 맞춰 곡번호색도 갱신
+      renderList(); renderPreview(); persist();
+    });
+  });
+
+  // 곡번호색을 직접 고르면 자동 배정이 해제된다
+  paletteNumberInput.addEventListener("input", () => {
+    const p = paletteById(selectedPaletteId);
+    if (!p) return;
+    p.numberColor = paletteNumberInput.value;
+    p.numberAuto = false;
+    paletteNumberAutoInput.checked = false;
+    renderList(); renderPreview(); persist();
+  });
+
+  paletteNumberAutoInput.addEventListener("change", () => {
+    const p = paletteById(selectedPaletteId);
+    if (!p) return;
+    p.numberAuto = paletteNumberAutoInput.checked;
+    if (!p.numberAuto) p.numberColor = autoNumberColor(p); // 직접 지정의 시작점은 현재 자동 색
+    syncNumberControls(p);
+    renderList(); renderPreview(); persist();
+  });
+
+  addPaletteBtn.addEventListener("click", () => {
+    const p = { id: uid(), name: "새 팔레트 " + (palettes.length + 1), bgColor: "#000000", borderColor: "#ffffff", textColor: "#ffffff", numberAuto: true, numberColor: "#ffffff" };
+    palettes.push(p);
+    selectedPaletteId = p.id;
+    renderPaletteEditor(); renderItemPaletteSelect(); persist();
+  });
+
+  deletePaletteBtn.addEventListener("click", () => {
+    if (palettes.length <= 1) return;
+    const removedId = selectedPaletteId;
+    palettes = palettes.filter(p => p.id !== removedId);
+    items.forEach(it => { if (it.paletteId === removedId) it.paletteId = palettes[0].id; });
+    selectedPaletteId = palettes[0].id;
+    renderPaletteEditor(); renderItemPaletteSelect(); renderList(); renderPreview(); persist();
+  });
+
+  itemPaletteSelectEl.addEventListener("change", () => {
+    const item = items.find(i => i.id === selectedId);
+    if (!item) return;
+    item.paletteId = itemPaletteSelectEl.value;
+    renderList(); renderPreview(); persist();
+  });
+
+  function currentPaletteIdForNewItem() {
+    const item = items.find(i => i.id === selectedId);
+    return (item && item.paletteId) || selectedPaletteId || palettes[0].id;
+  }
+
+  // ---------- Canvas rendering ----------
+  function wrapLines(ctx, rawLines, maxWidth, letterSpacing, wrap) {
+    const out = [];
+    rawLines.forEach(line => {
+      if (!wrap || measureLine(ctx, line, letterSpacing) <= maxWidth || line.length === 0) {
+        out.push(line);
+        return;
+      }
+      const words = line.split(" ");
+      let cur = "";
+      words.forEach(w => {
+        const test = cur ? cur + " " + w : w;
+        if (measureLine(ctx, test, letterSpacing) <= maxWidth || !cur) {
+          cur = test;
+        } else {
+          out.push(cur);
+          cur = w;
+        }
+      });
+      if (cur) out.push(cur);
+    });
+    return out;
+  }
+
+  function measureLine(ctx, text, letterSpacing) {
+    if (!text) return 0;
+    let w = 0;
+    for (const ch of text) w += ctx.measureText(ch).width + letterSpacing;
+    return w - letterSpacing;
+  }
+
+  function drawSpacedText(ctx, text, cx, y, letterSpacing) {
+    const total = measureLine(ctx, text, letterSpacing);
+    let x = cx - total / 2;
+    ctx.textAlign = "left";
+    for (const ch of text) {
+      const w = ctx.measureText(ch).width;
+      ctx.fillText(ch, x, y);
+      x += w + letterSpacing;
+    }
+  }
+
+  function renderToCanvas(canvas, parts, s) {
+    canvas.width = s.width;
+    canvas.height = s.height;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = s.bgColor;
+    ctx.fillRect(0, 0, s.width, s.height);
+
+    if (s.borderWidth > 0) {
+      ctx.strokeStyle = s.borderColor;
+      ctx.lineWidth = s.borderWidth;
+      ctx.strokeRect(s.borderWidth / 2, s.borderWidth / 2, s.width - s.borderWidth, s.height - s.borderWidth);
+    }
+
+    const maxWidth = Math.max(s.width - s.padding * 2 - s.borderWidth * 2, 10);
+    const maxHeight = Math.max(s.height - s.padding * 2 - s.borderWidth * 2, 10);
+    ctx.fillStyle = s.textColor;
+    ctx.textBaseline = "middle";
+
+    const numberText = (parts && parts.number) || "";
+    const titleText = (parts && parts.title) || "";
+    const rawTitleLines = titleText.split("\n");
+
+    function layoutAt(fontSize) {
+      const numberFontSize = numberText ? s.numberFontSize : 0;
+      ctx.font = `${s.fontWeight} ${fontSize}px "${s.fontFamily}"`;
+      const titleLines = wrapLines(ctx, rawTitleLines, maxWidth, s.letterSpacing, s.wrap);
+      const titleLineHeight = fontSize * s.lineSpacing;
+      const titleHeight = titleLineHeight * titleLines.length;
+      const numberLineHeight = numberText ? numberFontSize * s.lineSpacing : 0;
+      const totalHeight = numberLineHeight + titleHeight;
+      let maxLineWidth = 0;
+      titleLines.forEach(l => { maxLineWidth = Math.max(maxLineWidth, measureLine(ctx, l, s.letterSpacing)); });
+      return { fontSize, numberFontSize, titleLines, titleLineHeight, titleHeight, numberLineHeight, totalHeight, maxLineWidth };
+    }
+
+    let fontSize = s.fontSize;
+    let layout = layoutAt(fontSize);
+
+    if (s.fitMax && titleText.trim()) {
+      // 칸(가로·세로)에 들어가는 가장 큰 크기를 이진 탐색으로 찾는다
+      const fits = (l) => l.totalHeight <= maxHeight && l.maxLineWidth <= maxWidth;
+      let lo = 10, hi = Math.max(s.height, s.width) * 2, best = null;
+      for (let k = 0; k < 18; k++) {
+        const mid = (lo + hi) / 2;
+        const l = layoutAt(mid);
+        if (fits(l)) { best = l; lo = mid; } else { hi = mid; }
+      }
+      layout = best || layoutAt(10);
+      fontSize = layout.fontSize;
+    } else if (s.autoFit) {
+      while ((layout.totalHeight > maxHeight || layout.maxLineWidth > maxWidth) && fontSize > 10) {
+        fontSize -= Math.max(1, fontSize * 0.03);
+        layout = layoutAt(fontSize);
+      }
+    }
+
+    const blockTop = s.height / 2 - layout.totalHeight / 2;
+
+    if (numberText) {
+      ctx.font = `${s.numberFontWeight} ${layout.numberFontSize}px "${s.fontFamily}"`;
+      ctx.fillStyle = s.numberColor;
+      const numberCenterY = blockTop + layout.numberLineHeight / 2;
+      drawSpacedText(ctx, numberText, s.width / 2, numberCenterY, s.letterSpacing);
+    }
+
+    ctx.fillStyle = s.textColor;
+    ctx.font = `${s.fontWeight} ${layout.fontSize}px "${s.fontFamily}"`;
+    const titleBlockTop = blockTop + layout.numberLineHeight;
+    layout.titleLines.forEach((line, i) => {
+      const y = titleBlockTop + layout.titleLineHeight / 2 + i * layout.titleLineHeight;
+      drawSpacedText(ctx, line, s.width / 2, y, s.letterSpacing);
+    });
+
+    if (s.artistEnabled && s.artistText) {
+      ctx.font = `bold ${s.artistFontSize}px "${s.artistFontFamily}"`;
+      ctx.fillStyle = s.artistColor;
+      ctx.textBaseline = "top";
+      const y = s.borderWidth + s.artistOffset;
+      drawSpacedText(ctx, s.artistText, s.width / 2, y, s.artistLetterSpacing);
+    }
+  }
+
+  function updatePreviewSizing(s) {
+    const wrap = previewCanvas.parentElement;
+    const availW = wrap.clientWidth - 20;
+    const availH = wrap.clientHeight - 20;
+    const scale = Math.min(availW / s.width, availH / s.height, 1);
+    previewCanvas.style.width = (s.width * scale) + "px";
+    previewCanvas.style.height = (s.height * scale) + "px";
+  }
+
+  function renderPreview() {
+    const item = items.find(i => i.id === selectedId);
+    if (!item) return;
+    const s = settingsForItem(item);
+    renderToCanvas(previewCanvas, partsForItem(item), s);
+    updatePreviewSizing(s);
+    persist();
+  }
+
+  // ---------- List ----------
+  const checkedIds = new Set();
+
+  function updateCheckedUI() {
+    // 삭제 등으로 사라진 항목은 선택에서 제거
+    Array.from(checkedIds).forEach(id => { if (!items.some(i => i.id === id)) checkedIds.delete(id); });
+    const btn = el("exportCheckedBtn");
+    btn.disabled = checkedIds.size === 0;
+    btn.textContent = checkedIds.size ? `선택 저장 (${checkedIds.size})` : "선택 저장";
+    el("toggleAllBtn").textContent = (items.length && checkedIds.size === items.length) ? "전체 해제" : "전체 선택";
+  }
+
+  function renderList() {
+    itemListEl.innerHTML = "";
+    items.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "item-row" + (item.id === selectedId ? " selected" : "");
+      row.dataset.id = item.id;
+
+      const grip = document.createElement("span");
+      grip.className = "grip";
+      grip.textContent = "⋮⋮";
+      grip.title = "끌어서 순서 바꾸기";
+      grip.addEventListener("click", (e) => e.stopPropagation());
+      grip.addEventListener("pointerdown", (e) => startReorder(e, item.id, row));
+
+      const pick = document.createElement("input");
+      pick.type = "checkbox";
+      pick.className = "pick";
+      pick.title = "저장할 항목 선택";
+      pick.checked = checkedIds.has(item.id);
+      pick.addEventListener("click", (e) => e.stopPropagation());
+      pick.addEventListener("change", () => {
+        if (pick.checked) checkedIds.add(item.id); else checkedIds.delete(item.id);
+        updateCheckedUI();
+      });
+
+      const thumbWrap = document.createElement("div");
+      thumbWrap.className = "item-thumb";
+      const thumbCanvas = document.createElement("canvas");
+      const ts = scaledSettingsForItem(item, 108);
+      renderToCanvas(thumbCanvas, partsForItem(item), ts);
+      thumbWrap.appendChild(thumbCanvas);
+
+      const label = document.createElement("span");
+      const titleFirstLine = (item.title || "").split("\n")[0].trim();
+      const numberPart = (item.number || "").trim();
+      const combined = [numberPart, titleFirstLine].filter(Boolean).join(" ");
+      label.className = "label" + (combined ? "" : " empty");
+      label.textContent = combined || "(빈 텍스트)";
+
+      const dl = document.createElement("button");
+      dl.className = "dl";
+      dl.textContent = "⬇";
+      dl.title = "이 항목만 저장";
+      dl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        exportItems([item]);
+      });
+
+      const del = document.createElement("button");
+      del.className = "del";
+      del.textContent = "×";
+      del.title = "삭제";
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteItem(item.id);
+      });
+
+      row.appendChild(grip);
+      row.appendChild(pick);
+      row.appendChild(thumbWrap);
+      row.appendChild(label);
+      row.appendChild(dl);
+      row.appendChild(del);
+      row.addEventListener("click", () => selectItem(item.id));
+      itemListEl.appendChild(row);
+    });
+    itemCountEl.textContent = items.length + "개";
+    updateCheckedUI();
+  }
+
+  // 손잡이를 끌어서 순서 바꾸기 (마우스·터치 공통)
+  function startReorder(e, id, row) {
+    e.preventDefault(); e.stopPropagation();
+    const grip = e.currentTarget;
+    try { grip.setPointerCapture(e.pointerId); } catch (err) { /* 일부 환경 */ }
+    row.classList.add("dragging");
+    let target = null, after = false;
+    const clear = () => itemListEl.querySelectorAll(".drop-before,.drop-after").forEach(r => r.classList.remove("drop-before", "drop-after"));
+    const move = (ev) => {
+      const over = document.elementFromPoint(ev.clientX, ev.clientY);
+      const r = over && over.closest && over.closest(".item-row");
+      clear();
+      if (!r || r === row) { target = null; return; }
+      const b = r.getBoundingClientRect();
+      after = ev.clientY > b.top + b.height / 2;
+      target = r.dataset.id;
+      r.classList.add(after ? "drop-after" : "drop-before");
+      // 목록 끝에서 자동 스크롤
+      const lb = itemListEl.getBoundingClientRect();
+      if (ev.clientY < lb.top + 30) itemListEl.scrollTop -= 12; else if (ev.clientY > lb.bottom - 30) itemListEl.scrollTop += 12;
+    };
+    const up = () => {
+      grip.removeEventListener("pointermove", move);
+      grip.removeEventListener("pointerup", up);
+      grip.removeEventListener("pointercancel", up);
+      row.classList.remove("dragging");
+      clear();
+      if (!target) return;
+      const from = items.findIndex(i => i.id === id);
+      const [it] = items.splice(from, 1);
+      let to = items.findIndex(i => i.id === target);
+      if (after) to++;
+      items.splice(to, 0, it);
+      renderList(); renderPreview();
+    };
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up);
+    grip.addEventListener("pointercancel", up);
+  }
+
+  function selectItem(id) {
+    selectedId = id;
+    const item = items.find(i => i.id === id);
+    numberEditor.value = item ? (item.number || "") : "";
+    titleEditor.value = item ? (item.title || "") : "";
+    renderItemPaletteSelect();
+    renderList();
+    renderPreview();
+  }
+
+  function addItem(title, number) {
+    const item = { id: uid(), title: title || "", number: number || "", paletteId: currentPaletteIdForNewItem() };
+    items.push(item);
+    selectItem(item.id);
+  }
+
+  function deleteItem(id) {
+    const idx = items.findIndex(i => i.id === id);
+    if (idx === -1) return;
+    items.splice(idx, 1);
+    if (!items.length) items.push({ id: uid(), title: "", number: "", paletteId: currentPaletteIdForNewItem() });
+    const newSel = items[Math.min(idx, items.length - 1)];
+    selectItem(newSel.id);
+  }
+
+  titleEditor.addEventListener("input", () => {
+    const item = items.find(i => i.id === selectedId);
+    if (!item) return;
+    item.title = titleEditor.value;
+    renderList();
+    renderPreview();
+  });
+
+  numberEditor.addEventListener("input", () => {
+    const item = items.find(i => i.id === selectedId);
+    if (!item) return;
+    item.number = numberEditor.value;
+    renderList();
+    renderPreview();
+  });
+
+  numberToggleEl.addEventListener("change", () => {
+    renderList();
+    renderPreview();
+  });
+
+
+  el("addItemBtn").addEventListener("click", () => addItem("", ""));
+
+  el("autoNumberBtn").addEventListener("click", async () => {
+    const hasAny = items.some(i => (i.number || "").trim());
+    if (hasAny) {
+      const ok = await askDialog({ title: "곡번호 자동 매기기", desc: "지금 목록 순서대로 곡번호를 #1, #2 … 로 다시 채워요. 이미 입력한 곡번호는 바뀌어요.", okText: "다시 매기기" });
+      if (!ok) return;
+    }
+    items.forEach((it, i) => { it.number = "#" + (i + 1); });
+    const cur = items.find(i => i.id === selectedId);
+    if (cur) numberEditor.value = cur.number;
+    renderList(); renderPreview();
+  });
+
+  // "#1 제목", "1. 제목", "1) 제목", 첫 줄 "#1" 단독 → { number, title }
+  function splitNumber(block) {
+    const lines = block.split("\n");
+    const first = lines[0].trim();
+    let m = first.match(/^#\s*(\d+)\s*$/) || first.match(/^(\d+)[.)]\s*$/);
+    if (m) return { number: "#" + m[1], title: lines.slice(1).join("\n").replace(/^\n+/, "") };
+    m = first.match(/^#\s*(\d+)[.)]?\s+(.+)$/) || first.match(/^(\d+)[.)]\s+(.+)$/);
+    if (m) return { number: "#" + m[1], title: [m[2]].concat(lines.slice(1)).join("\n") };
+    return { number: "", title: block };
+  }
+
+  // ---------- Bulk import ----------
+  function splitBulkText(raw) {
+    return raw.split(/\n---\n|^---\n|\n---$/g).map(s => s.replace(/^\n+|\n+$/g, "")).filter(s => s.trim().length > 0);
+  }
+
+  el("bulkImportBtn").addEventListener("click", () => {
+    el("bulkText").value = "";
+    el("bulkModal").classList.add("open");
+  });
+  el("bulkCancelBtn").addEventListener("click", () => el("bulkModal").classList.remove("open"));
+  el("bulkImportConfirmBtn").addEventListener("click", () => {
+    const blocks = splitBulkText(el("bulkText").value);
+    const inheritedPaletteId = currentPaletteIdForNewItem();
+    blocks.forEach(b => { const p = splitNumber(b); items.push({ id: uid(), title: p.title, number: p.number, paletteId: inheritedPaletteId }); });
+    if (blocks.length) selectItem(items[items.length - 1].id);
+    el("bulkModal").classList.remove("open");
+    renderList(); renderPreview();
+  });
+
+  el("resetAllBtn").addEventListener("click", async () => {
+    const ok = await askDialog({ title: "이 공연 초기화", desc: "이 공연의 곡 목록, 팔레트, 스타일 설정이 모두 처음 상태로 돌아가요. 되돌릴 수 없어요.", okText: "초기화", danger: true });
+    if (!ok) return;
+    const show = currentShow();
+    if (show) { show.state = null; show.cover = null; show.updatedAt = Date.now(); saveStore(); }
+    location.reload();
+  });
+
+  // ---------- Gallery ----------
+  function renderGallery() {
+    const grid = el("galleryGrid");
+    grid.innerHTML = "";
+    if (!items.length) { grid.innerHTML = '<div class="gallery-empty">리스트가 비어있습니다.</div>'; return; }
+    items.forEach((item) => {
+      const cell = document.createElement("div");
+      cell.className = "gallery-cell";
+      const canvas = document.createElement("canvas");
+      const s = settingsForItem(item);
+      const displayText = displayTextForItem(item);
+      renderToCanvas(canvas, partsForItem(item), s);
+      const label = document.createElement("div");
+      label.className = "gallery-label";
+      label.textContent = displayText.split("\n").join(" / ").trim() || "(빈 텍스트)";
+      cell.appendChild(canvas);
+      cell.appendChild(label);
+      cell.addEventListener("click", () => { selectItem(item.id); el("galleryModal").classList.remove("open"); });
+      grid.appendChild(cell);
+    });
+  }
+
+  el("galleryBtn").addEventListener("click", () => { renderGallery(); el("galleryModal").classList.add("open"); });
+  el("galleryCloseBtn").addEventListener("click", () => el("galleryModal").classList.remove("open"));
+
+  // ---------- Style listeners ----------
+  [canvasWidthInput, canvasHeightInput, fontSelect, fontCustom, fontWeightSelect, numberFontWeightSelect, wrapToggle, autoFitToggle, fitMaxToggle, artistToggleEl, artistTextInput, artistFontSelect, artistFontCustom, artistColorInput].forEach(input => {
+    input.addEventListener("input", renderPreview);
+    input.addEventListener("change", renderPreview);
+  });
+  artistFontSizeInput.addEventListener("input", () => { artistFontSizeVal.textContent = artistFontSizeInput.value; renderPreview(); });
+  artistLetterSpacingInput.addEventListener("input", () => { artistLetterSpacingVal.textContent = artistLetterSpacingInput.value; renderPreview(); });
+  artistOffsetInput.addEventListener("input", () => { artistOffsetVal.textContent = artistOffsetInput.value; renderPreview(); });
+  borderWidthInput.addEventListener("input", () => { borderWidthVal.textContent = borderWidthInput.value; renderPreview(); });
+  fontSizeInput.addEventListener("input", () => { fontSizeVal.textContent = fontSizeInput.value; renderPreview(); });
+  numberFontSizeInput.addEventListener("input", () => { numberFontSizeVal.textContent = numberFontSizeInput.value; renderPreview(); });
+  letterSpacingInput.addEventListener("input", () => { letterSpacingVal.textContent = letterSpacingInput.value; renderPreview(); });
+  lineSpacingInput.addEventListener("input", () => { lineSpacingVal.textContent = lineSpacingInput.value + "%"; renderPreview(); });
+  paddingInput.addEventListener("input", () => { paddingVal.textContent = paddingInput.value; renderPreview(); });
+
+  sectionEls.forEach(d => d.addEventListener("toggle", persist));
+
+  window.addEventListener("resize", () => {
+    const item = items.find(i => i.id === selectedId);
+    if (item) updatePreviewSizing(settingsForItem(item));
+  });
+
+  // ---------- Filename helper ----------
+  function suggestedFileName(item, index) {
+    const numberPart = (item.number || "").trim();
+    const titlePart = (item.title || "").split("\n")[0].trim();
+    const raw = [numberPart, titlePart].filter(Boolean).join(" ");
+    let cleaned = raw.replace(/[\/\\:*?"<>|]/g, "_");
+    if (!cleaned) cleaned = "thumbnail_" + (index + 1);
+    if (cleaned.length > 60) cleaned = cleaned.slice(0, 60);
+    return cleaned;
+  }
+
+  function log(msg) { logEl.textContent = msg; }
+
+  // ---------- Export ----------
+  const supportsFSAccess = "showDirectoryPicker" in window;
+  let inIframe = false;
+  try { inIframe = window.self !== window.top; } catch (e) { inIframe = true; }
+
+  if (!supportsFSAccess) {
+    el("chooseFolderBtn").disabled = true;
+    el("generateFolderBtn").disabled = true;
+    folderLabel.textContent = "이 브라우저는 폴더 선택을 지원하지 않아요 (Safari/Firefox 등). Chrome·Edge에서 열거나 아래 '다운로드로 일괄 저장'을 사용하세요.";
+  } else if (inIframe) {
+    folderLabel.textContent = "미리보기 창 안에서는 폴더 선택이 막혀 있어요. 파일을 다운로드해서 Chrome/Edge에서 직접 열어주세요.";
+  }
+
+  el("chooseFolderBtn").addEventListener("click", async () => {
+    try {
+      const handle = await window.showDirectoryPicker({ mode: "readwrite" });
+      dirHandle = handle;
+      folderLabel.textContent = "선택됨: " + handle.name;
+      log("");
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // 사용자가 취소
+      dirHandle = null;
+      if (e && e.name === "SecurityError") {
+        folderLabel.textContent = "폴더 선택이 차단됐어요. 미리보기 창이 아니라 Chrome/Edge에서 파일을 직접 열었는지 확인하세요.";
+      } else {
+        folderLabel.textContent = "폴더를 선택하지 못했어요: " + (e && e.name ? e.name : "알 수 없는 오류");
+      }
+      log("참고: Chrome은 바탕화면·문서·다운로드 폴더 자체는 선택할 수 없어요. 그 안에 새 폴더를 만들어 선택하거나, 아래 '다운로드로 일괄 저장'을 사용하세요.");
+    }
+  });
+
+  async function fileExistsInDir(handle, name) {
+    try { await handle.getFileHandle(name, { create: false }); return true; }
+    catch { return false; }
+  }
+
+  async function generateAllCommon(saveFn, list) {
+    list = list || items;
+    if (!list.length) { log("리스트가 비어있습니다."); return { success: 0, skipped: 0 }; }
+    const used = new Set();
+    let success = 0, skipped = 0;
+    for (let n = 0; n < list.length; n++) {
+      const item = list[n];
+      const i = items.indexOf(item);
+      const trimmed = (item.title || "").trim();
+      if (!trimmed) { skipped++; continue; }
+      const s = settingsForItem(item);
+      renderToCanvas(offscreen, partsForItem(item), s);
+      const blob = await new Promise(res => offscreen.toBlob(res, "image/png"));
+      const base = suggestedFileName(item, i);
+      let final = base, counter = 2;
+      while (used.has(final) || await saveFn.exists(final)) { final = base + "_" + counter; counter++; }
+      used.add(final);
+      await saveFn.save(final + ".png", blob);
+      success++;
+    }
+    return { success, skipped };
+  }
+
+  function folderSaver() {
+    return {
+      exists: (name) => fileExistsInDir(dirHandle, name + ".png"),
+      save: async (name, blob) => {
+        const fh = await dirHandle.getFileHandle(name, { create: true });
+        const w = await fh.createWritable();
+        await w.write(blob);
+        await w.close();
+      }
+    };
+  }
+
+  function downloadSaver() {
+    return {
+      exists: async () => false,
+      save: async (name, blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        await new Promise(r => setTimeout(r, 200));
+        URL.revokeObjectURL(url);
+      }
+    };
+  }
+
+  // 여러 장을 ZIP 하나로 (아이폰에서도 파일 하나로 저장되고, 브라우저가 여러 파일 허용을 묻지 않음)
+  async function exportZip(list) {
+    if (typeof JSZip === "undefined") { log("ZIP 라이브러리를 불러오지 못했어요. 앱 안(홈 → 큐시트 메이커)에서 열어 주세요."); return; }
+    const zip = new JSZip();
+    const names = new Set();
+    const result = await generateAllCommon({ exists: async (n) => names.has(n + ".png"), save: async (name, blob) => { names.add(name); zip.file(name, blob); } }, list);
+    if (!result.success) { log("저장할 항목이 없어요 (곡제목이 비어 있으면 건너뜀)."); return; }
+    const blob = await zip.generateAsync({ type: "blob", compression: "STORE" });
+    const show = currentShow();
+    const base = ((show && show.name) || "cuesheet").replace(/[\/\\:*?"<>|]/g, "_").slice(0, 60);
+    await downloadSaver().save(base + "_큐시트.zip", blob);
+    log(`${result.success}장을 ZIP 하나로 저장했어요` + (result.skipped ? ` (빈 항목 ${result.skipped}개 건너뜀)` : ""));
+  }
+
+  async function exportToFolder(list) {
+    if (!dirHandle) { log("먼저 폴더를 선택하세요."); return; }
+    const result = await generateAllCommon(folderSaver(), list);
+    log(`${result.success}개 썸네일 생성 완료 → "${dirHandle.name}" 폴더` + (result.skipped ? ` (빈 항목 ${result.skipped}개 건너뜀)` : ""));
+  }
+
+  async function exportByDownload(list) {
+    const result = await generateAllCommon(downloadSaver(), list);
+    log(`${result.success}개 다운로드 완료` + (result.skipped ? ` / 빈 항목 ${result.skipped}개 건너뜀` : "") + (result.success > 1 ? ` — 처음 한 번 "여러 파일 다운로드 허용" 확인이 뜨면 허용해주세요.` : ""));
+  }
+
+  // 폴더를 선택해 둔 상태면 폴더에, 아니면 다운로드로 저장
+  async function exportItems(list) {
+    if (dirHandle) await exportToFolder(list);
+    else await exportByDownload(list);
+  }
+
+  el("generateFolderBtn").addEventListener("click", () => exportToFolder(items));
+  el("generateDownloadBtn").addEventListener("click", () => exportByDownload(items));
+  el("generateZipBtn").addEventListener("click", () => exportZip(items));
+
+  el("exportCheckedBtn").addEventListener("click", () => {
+    const list = items.filter(i => checkedIds.has(i.id));
+    if (list.length) exportItems(list);
+  });
+
+  el("toggleAllBtn").addEventListener("click", () => {
+    if (items.length && checkedIds.size === items.length) checkedIds.clear();
+    else items.forEach(i => checkedIds.add(i.id));
+    renderList();
+  });
+
+  // ---------- Persistence ----------
+  let initializing = true;
+  let lastSerialized = null;
+
+  function buildState() {
+      const state = {
+        palettes, selectedPaletteId, items, selectedId,
+        global: {
+          canvasWidth: canvasWidthInput.value, canvasHeight: canvasHeightInput.value,
+          borderWidth: borderWidthInput.value, font: fontSelect.value, fontCustom: fontCustom.value,
+          fontWeight: fontWeightSelect.value,
+          fontSize: fontSizeInput.value, numberFontSize: numberFontSizeInput.value, numberFontWeight: numberFontWeightSelect.value, letterSpacing: letterSpacingInput.value,
+          lineSpacing: lineSpacingInput.value, padding: paddingInput.value, wrap: wrapToggle.checked,
+          autoFit: autoFitToggle.checked,
+          fitMax: fitMaxToggle.checked,
+          numberEnabled: numberToggleEl.checked,
+          artistEnabled: artistToggleEl.checked, artistText: artistTextInput.value,
+          artistFont: artistFontSelect.value, artistFontCustom: artistFontCustom.value,
+          artistColor: artistColorInput.value, artistFontSize: artistFontSizeInput.value,
+          artistLetterSpacing: artistLetterSpacingInput.value,
+          artistOffset: artistOffsetInput.value,
+          rangeBounds: Array.from(document.querySelectorAll('.row input[type=range]')).reduce((acc, r) => { acc[r.id] = [r.min, r.max]; return acc; }, {}),
+          sections: SECTION_IDS.reduce((acc, id) => { const d = el(id); acc[id] = d ? d.open : true; return acc; }, {})
+        }
+      };
+      return state;
+  }
+
+  function persist() {
+    if (initializing) return;
+    const show = currentShow();
+    if (!show) return;
+    try {
+      const state = buildState();
+      const json = JSON.stringify(state);
+      if (json === lastSerialized) return; // 바뀐 게 없으면 "수정됨" 시각을 건드리지 않는다
+      lastSerialized = json;
+      show.state = state;
+      show.updatedAt = Date.now();
+      saveStore();
+      scheduleCover();
+    } catch (e) {}
+  }
+
+  function restoreState() {
+    const show = currentShow();
+    const state = show && show.state;
+    if (!state) return false;
+    try {
+      if (state.palettes && state.palettes.length) palettes = state.palettes;
+      if (state.selectedPaletteId) selectedPaletteId = state.selectedPaletteId;
+      if (state.items && state.items.length) {
+        items = state.items.map(it => {
+          if (typeof it.title === "undefined" && typeof it.text === "string") {
+            const lines = it.text.split("\n");
+            return { id: it.id, number: "", title: lines.join("\n"), paletteId: it.paletteId };
+          }
+          return it;
+        });
+      }
+      if (state.selectedId) selectedId = state.selectedId;
+      const g = state.global || {};
+      if (g.rangeBounds) Object.keys(g.rangeBounds).forEach(id => {
+        const r = el(id);
+        if (r && r.type === "range") { r.min = g.rangeBounds[id][0]; r.max = g.rangeBounds[id][1]; }
+      });
+      if (g.canvasWidth) canvasWidthInput.value = g.canvasWidth;
+      if (g.canvasHeight) canvasHeightInput.value = g.canvasHeight;
+      if (g.borderWidth) { borderWidthInput.value = g.borderWidth; borderWidthVal.textContent = g.borderWidth; }
+      if (g.font) fontSelect.value = g.font;
+      if (g.fontCustom) fontCustom.value = g.fontCustom;
+      if (g.fontWeight) fontWeightSelect.value = g.fontWeight;
+      if (g.numberFontWeight) numberFontWeightSelect.value = g.numberFontWeight;
+      if (g.fontSize) { fontSizeInput.value = g.fontSize; fontSizeVal.textContent = g.fontSize; }
+      if (g.numberFontSize) { numberFontSizeInput.value = g.numberFontSize; numberFontSizeVal.textContent = g.numberFontSize; }
+      if (g.letterSpacing) { letterSpacingInput.value = g.letterSpacing; letterSpacingVal.textContent = g.letterSpacing; }
+      if (g.lineSpacing) { lineSpacingInput.value = g.lineSpacing; lineSpacingVal.textContent = g.lineSpacing + "%"; }
+      if (g.padding) { paddingInput.value = g.padding; paddingVal.textContent = g.padding; }
+      if (typeof g.wrap === "boolean") wrapToggle.checked = g.wrap;
+      if (typeof g.autoFit === "boolean") autoFitToggle.checked = g.autoFit;
+      if (typeof g.fitMax === "boolean") fitMaxToggle.checked = g.fitMax;
+      if (typeof g.numberEnabled === "boolean") numberToggleEl.checked = g.numberEnabled;
+      if (typeof g.artistEnabled === "boolean") artistToggleEl.checked = g.artistEnabled;
+      if (typeof g.artistText === "string") artistTextInput.value = g.artistText;
+      if (g.artistFont) artistFontSelect.value = g.artistFont;
+      if (g.artistFontCustom) artistFontCustom.value = g.artistFontCustom;
+      if (g.artistColor) artistColorInput.value = g.artistColor;
+      if (g.artistFontSize) { artistFontSizeInput.value = g.artistFontSize; artistFontSizeVal.textContent = g.artistFontSize; }
+      if (g.artistLetterSpacing) { artistLetterSpacingInput.value = g.artistLetterSpacing; artistLetterSpacingVal.textContent = g.artistLetterSpacing; }
+      if (g.artistOffset) { artistOffsetInput.value = g.artistOffset; artistOffsetVal.textContent = g.artistOffset; }
+      if (g.sections) SECTION_IDS.forEach(id => { const d = el(id); if (d && typeof g.sections[id] === "boolean") d.open = g.sections[id]; });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // ---------- Init ----------
+  function initEditor() {
+  initializing = true;
+  const restored = restoreState();
+
+  // ---------- 슬라이더 옆 숫자 직접 입력 ----------
+  (function setupNumericInputs() {
+    document.querySelectorAll(".row input[type=range]").forEach(range => {
+      const valSpan = range.parentElement.querySelector(".val");
+      const origMin = parseFloat(range.min);
+      const num = document.createElement("input");
+      num.type = "number";
+      num.className = "val-input";
+      num.step = range.step && range.step !== "any" ? range.step : "1";
+      num.value = range.value;
+
+      const wrap = document.createElement("span");
+      wrap.className = "val-wrap";
+      wrap.appendChild(num);
+      if (range.id === "lineSpacing") {
+        const unit = document.createElement("span");
+        unit.className = "val-unit"; unit.textContent = "%";
+        wrap.appendChild(unit);
+      }
+      if (valSpan) valSpan.after(wrap); else range.after(wrap);
+
+      let fromNum = false;
+      range.addEventListener("input", () => { if (!fromNum) num.value = range.value; });
+
+      num.addEventListener("input", () => {
+        let v = parseFloat(num.value);
+        if (isNaN(v)) return;
+        v = Math.min(Math.max(v, origMin), 5000);
+        // 슬라이더 범위를 넘는 값도 입력할 수 있게 범위를 넓힌다
+        if (v > parseFloat(range.max)) range.max = v;
+        range.value = v;
+        fromNum = true;
+        range.dispatchEvent(new Event("input", { bubbles: true }));
+        fromNum = false;
+      });
+      num.addEventListener("change", () => {
+        let v = parseFloat(num.value);
+        if (isNaN(v)) v = parseFloat(range.value);
+        num.value = Math.min(Math.max(v, origMin), 5000);
+      });
+    });
+  })();
+  renderPaletteEditor();
+  selectItem(restored ? selectedId : items[0].id);
+  renderList();
+  renderPreview();
+  initializing = false;
+  const show = currentShow();
+  el("showName").value = show.name;
+  const st0 = buildState();
+  lastSerialized = JSON.stringify(st0);
+  show.state = st0;
+  saveStore();
+  }
+
+  // ---------- 표지(공연 카드 미리보기) ----------
+  let coverTimer = null;
+  function scheduleCover() { clearTimeout(coverTimer); coverTimer = setTimeout(updateCover, 700); }
+  function updateCover() {
+    clearTimeout(coverTimer);
+    const show = currentShow();
+    if (!show) return;
+    try { show.cover = buildCover(); saveStore(); } catch (e) {}
+  }
+  function buildCover() {
+    const list = items.filter(i => (i.title || "").trim()).slice(0, 4);
+    if (!list.length) return null;
+    const W = 480, H = 360, GAP = 4;
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const c = cv.getContext("2d");
+    c.fillStyle = "#0a0a0a";
+    c.fillRect(0, 0, W, H);
+    const n = list.length;
+    const cols = n === 1 ? 1 : 2;
+    const rows = Math.ceil(n / cols);
+    const g = globalSettings();
+    const aspect = g.height / g.width;
+    const maxW = (W - (cols - 1) * GAP) / cols;
+    const maxH = (H - (rows - 1) * GAP) / rows;
+    const cellW = Math.max(1, Math.floor(Math.min(maxW, maxH / aspect)));
+    const cellH = Math.max(1, Math.round(cellW * aspect));
+    const offX = (W - (cols * cellW + (cols - 1) * GAP)) / 2;
+    const offY = (H - (rows * cellH + (rows - 1) * GAP)) / 2;
+    const tmp = document.createElement("canvas");
+    list.forEach((item, idx) => {
+      renderToCanvas(tmp, partsForItem(item), scaledSettingsForItem(item, cellW));
+      c.drawImage(tmp, offX + (idx % cols) * (cellW + GAP), offY + Math.floor(idx / cols) * (cellH + GAP));
+    });
+    return cv.toDataURL("image/jpeg", 0.82);
+  }
+
+  // ---------- 공통 다이얼로그 ----------
+  function askDialog(opts) {
+    return new Promise(resolve => {
+      const modal = el("dialogModal"), inp = el("dialogInput"), ok = el("dialogOk"), cancel = el("dialogCancel");
+      el("dialogTitle").textContent = opts.title || "";
+      el("dialogDesc").textContent = opts.desc || "";
+      el("dialogDesc").style.display = opts.desc ? "" : "none";
+      inp.style.display = opts.input ? "" : "none";
+      inp.value = opts.value || "";
+      inp.placeholder = opts.placeholder || "";
+      ok.textContent = opts.okText || "확인";
+      ok.className = opts.danger ? "danger-fill" : "primary";
+      modal.classList.add("open");
+      if (opts.input) setTimeout(() => { inp.focus(); inp.select(); }, 30);
+      const done = (v) => {
+        modal.classList.remove("open");
+        document.removeEventListener("keydown", onKey, true);
+        modal.onmousedown = null;
+        resolve(v);
+      };
+      const submit = () => done(opts.input ? inp.value.trim() : true);
+      function onKey(e) {
+        if (e.key === "Escape") { e.preventDefault(); done(null); }
+        else if (e.key === "Enter" && opts.input && document.activeElement === inp) { e.preventDefault(); submit(); }
+      }
+      document.addEventListener("keydown", onKey, true);
+      ok.onclick = submit;
+      cancel.onclick = () => done(null);
+      modal.onmousedown = (e) => { if (e.target === modal) done(null); };
+    });
+  }
+
+  // ---------- 공연 목록(홈) ----------
+  function showView(v) { document.body.dataset.view = v; }
+
+  function timeAgo(ts) {
+    const d = (Date.now() - ts) / 1000;
+    if (d < 60) return "방금 전";
+    if (d < 3600) return Math.floor(d / 60) + "분 전";
+    if (d < 86400) return Math.floor(d / 3600) + "시간 전";
+    if (d < 86400 * 30) return Math.floor(d / 86400) + "일 전";
+    return new Date(ts).toLocaleDateString("ko-KR");
+  }
+
+  function songCount(show) {
+    const its = (show.state && show.state.items) || [];
+    return its.filter(i => ((i.title || i.text || "")).trim()).length;
+  }
+
+  function openShow(id) {
+    store.currentId = id;
+    saveStore();
+    location.reload();
+  }
+
+  function goHome() {
+    persist();
+    updateCover();
+    store.currentId = null;
+    saveStore();
+    showView("home");
+    renderHome();
+  }
+
+  async function createShow() {
+    const name = await askDialog({ title: "새 공연 만들기", desc: "공연 이름을 입력하세요.", input: true, placeholder: "예: 2026 LiMiNaL 서울", okText: "만들기" });
+    if (name === null) return;
+    const now = Date.now();
+    const sh = { id: uid(), name: name || "이름 없는 공연", createdAt: now, updatedAt: now, cover: null, state: null };
+    store.shows.push(sh);
+    openShow(sh.id);
+  }
+
+  async function renameShow(sh) {
+    const name = await askDialog({ title: "공연 이름 변경", input: true, value: sh.name, okText: "변경" });
+    if (name === null || !name) return;
+    sh.name = name;
+    sh.updatedAt = Date.now();
+    saveStore();
+    renderHome();
+  }
+
+  function duplicateShow(sh) {
+    const copy = JSON.parse(JSON.stringify(sh));
+    const now = Date.now();
+    copy.id = uid(); copy.name = sh.name + " (복사)"; copy.createdAt = now; copy.updatedAt = now;
+    store.shows.push(copy);
+    saveStore();
+    renderHome();
+  }
+
+  // 공연 하나를 파일로: 다른 기기·브라우저로 옮기거나 백업
+  function exportShow(sh) {
+    const data = { app: "cuesheet-maker", version: 1, exportedAt: new Date().toISOString(), show: sh };
+    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+    const name = (sh.name || "공연").replace(/[\/\\:*?"<>|]/g, "_").slice(0, 60) + "_큐시트.json";
+    downloadSaver().save(name, blob);
+  }
+
+  function importShowFile(file) {
+    const r = new FileReader();
+    r.onload = async () => {
+      let sh;
+      try {
+        const data = JSON.parse(r.result);
+        sh = data && data.show;
+        if (!sh || typeof sh !== "object" || !("state" in sh)) throw new Error();
+      } catch (e) {
+        await askDialog({ title: "가져오기 실패", desc: "큐시트 메이커에서 내보낸 공연 파일(.json)이 아니에요.", okText: "확인" });
+        return;
+      }
+      const now = Date.now();
+      const names = new Set(store.shows.map(x => x.name));
+      let name = sh.name || "가져온 공연";
+      if (names.has(name)) name += " (가져옴)";
+      store.shows.push({ id: uid(), name, createdAt: sh.createdAt || now, updatedAt: now, cover: sh.cover || null, state: sh.state || null });
+      saveStore();
+      renderHome();
+    };
+    r.readAsText(file);
+  }
+
+  async function deleteShow(sh) {
+    const ok = await askDialog({ title: "공연 삭제", desc: `"${sh.name}" 공연과 안의 큐시트가 모두 삭제돼요. 되돌릴 수 없어요.`, okText: "삭제", danger: true });
+    if (!ok) return;
+    store.shows = store.shows.filter(x => x.id !== sh.id);
+    // 삭제 기록: 다른 기기와 동기화할 때 지운 공연이 되살아나지 않게
+    store.deleted = store.deleted || {};
+    store.deleted[sh.id] = Date.now();
+    saveStore();
+    renderHome();
+  }
+
+  const menuEl = el("showMenu");
+  function closeMenu() { menuEl.classList.remove("open"); }
+  function openMenu(btn, sh) {
+    menuEl.innerHTML = "";
+    const add = (label, fn, cls) => {
+      const b = document.createElement("button");
+      b.textContent = label; if (cls) b.className = cls;
+      b.addEventListener("click", (e) => { e.stopPropagation(); closeMenu(); fn(); });
+      menuEl.appendChild(b);
+    };
+    add("열기", () => openShow(sh.id));
+    add("이름 변경", () => renameShow(sh));
+    add("복제", () => duplicateShow(sh));
+    add("파일로 내보내기 (.json)", () => exportShow(sh));
+    menuEl.appendChild(document.createElement("hr"));
+    add("삭제", () => deleteShow(sh), "danger");
+    const r = btn.getBoundingClientRect();
+    menuEl.style.top = (r.bottom + 4) + "px";
+    menuEl.style.left = Math.max(8, Math.min(r.right - 150, window.innerWidth - 160)) + "px";
+    menuEl.classList.add("open");
+  }
+  document.addEventListener("click", closeMenu);
+  window.addEventListener("scroll", closeMenu, true);
+  window.addEventListener("resize", closeMenu);
+
+  function renderHome() {
+    const grid = el("showGrid");
+    grid.innerHTML = "";
+    const q = el("showSearch").value.trim().toLowerCase();
+
+    const nc = document.createElement("div");
+    nc.className = "show-card new";
+    nc.innerHTML = '<div class="plus">+</div><div class="t">새 공연</div>';
+    nc.addEventListener("click", createShow);
+    grid.appendChild(nc);
+
+    const shows = store.shows.slice().sort((a, b) => b.updatedAt - a.updatedAt).filter(sh => !q || sh.name.toLowerCase().includes(q));
+    shows.forEach(sh => {
+      const card = document.createElement("div");
+      card.className = "show-card";
+
+      const prev = document.createElement("div");
+      prev.className = "show-preview";
+      if (sh.cover) {
+        const img = document.createElement("img");
+        img.src = sh.cover; img.alt = sh.name;
+        prev.appendChild(img);
+      } else {
+        const ph = document.createElement("div");
+        ph.className = "ph"; ph.textContent = sh.name;
+        prev.appendChild(ph);
+      }
+
+      const info = document.createElement("div");
+      info.className = "show-info";
+      const meta = document.createElement("div");
+      meta.className = "show-meta";
+      const nm = document.createElement("div");
+      nm.className = "show-name"; nm.textContent = sh.name; nm.title = sh.name;
+      const sub = document.createElement("div");
+      sub.className = "show-sub"; sub.textContent = `${songCount(sh)}곡 · ${timeAgo(sh.updatedAt)} 수정`;
+      meta.appendChild(nm); meta.appendChild(sub);
+
+      const mb = document.createElement("button");
+      mb.className = "show-menu-btn"; mb.textContent = "⋯"; mb.title = "더보기";
+      mb.addEventListener("click", (e) => { e.stopPropagation(); openMenu(mb, sh); });
+
+      info.appendChild(meta); info.appendChild(mb);
+      card.appendChild(prev); card.appendChild(info);
+      card.addEventListener("click", () => openShow(sh.id));
+      grid.appendChild(card);
+    });
+
+    if (q && !shows.length) {
+      const empty = document.createElement("div");
+      empty.className = "home-empty";
+      empty.textContent = "검색 결과가 없어요.";
+      grid.after(empty);
+      setTimeout(() => empty.remove(), 0);
+    }
+  }
+
+  el("newShowBtn").addEventListener("click", createShow);
+  el("importShowBtn").addEventListener("click", () => el("importShowFile").click());
+  el("importShowFile").addEventListener("change", (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) importShowFile(f); });
+  el("showSearch").addEventListener("input", renderHome);
+  el("backBtn").addEventListener("click", goHome);
+  el("showName").addEventListener("input", () => {
+    const show = currentShow();
+    const v = el("showName").value.trim();
+    if (!show || !v) return;
+    show.name = v;
+    show.updatedAt = Date.now();
+    saveStore();
+  });
+  window.addEventListener("beforeunload", () => { if (currentShow() && !initializing) updateCover(); });
+
+  // ---------- 시작 ----------
+  if (currentShow()) { showView("editor"); initEditor(); }
+  else { store.currentId = null; showView("home"); renderHome(); }
+})();
+</script>
+</body>
+</html>

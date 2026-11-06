@@ -154,4 +154,6 @@ export interface BackupFile {
   settings: Settings;
   projects: Project[];
   leds: Led[];
+  /** 앱 안 도구(큐시트·근무일지·Border Maker·3D 로고)의 저장 데이터. 키 → { 값, 마지막 수정 시각 } */
+  tools?: Record<string, { value: string; at: number }>;
 }

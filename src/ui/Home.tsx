@@ -2,6 +2,15 @@ import { useStore, createProject, newLed, addLed, getProject } from '../store';
 import { inputLayout } from '../layout';
 import { go } from './common';
 import { ago, lastBackupAt, changedSinceBackup, needsBackup } from '../sync';
+import { isLinked, lastDriveSync } from '../gdrive';
+
+/** 같은 앱 안의 개별 도구 페이지 (public/tools). 오프라인 프리캐시됨 */
+const TOOLS = [
+  { href: 'tools/cuesheet.html', name: '큐시트 메이커', desc: '곡 번호·제목 썸네일 PNG', icon: '#' },
+  { href: 'tools/border-maker.html', name: 'Border Maker', desc: '보더 · 매트 PNG', icon: '▢' },
+  { href: 'tools/metal-logo.html', name: '3D 로고 루프', desc: '메탈 회전 PNG 시퀀스', icon: '◆' },
+  { href: 'tools/worklog.html', name: 'VJ 근무일지', desc: '월별 근무 · PDF', icon: '▦' },
+];
 
 export function Home() {
   const s = useStore();
@@ -29,10 +38,10 @@ export function Home() {
       <a class={'card sync-card' + (needsBackup() ? ' accent' : '')} href="#/menu/backup">
         <span class="sync-ic">☁︎</span>
         <div class="grow">
-          <div style="font-weight:600">iCloud 백업</div>
-          <div class="small muted">마지막 저장 {ago(lastBackupAt())}{changedSinceBackup() > 0 && <> · 바뀐 항목 <b style="color:var(--accent)">{changedSinceBackup()}</b></>}</div>
+          <div style="font-weight:600">백업 · 동기화</div>
+          <div class="small muted">{isLinked() ? <>구글 드라이브 {ago(lastDriveSync())}</> : <>마지막 저장 {ago(lastBackupAt())}</>}{changedSinceBackup() > 0 && <> · 바뀐 항목 <b style="color:var(--accent)">{changedSinceBackup()}</b></>}</div>
         </div>
-        {needsBackup() && <span class="chip on">저장</span>}
+        {needsBackup() && <span class="chip on">{isLinked() ? "동기화" : "저장"}</span>}
       </a>
 
       <div class="row" style="margin-top:12px">
@@ -44,6 +53,17 @@ export function Home() {
           <div class="muted small">프로젝트</div>
           <div class="num" style="font-size:32px;font-weight:600">{s.projects.filter((p) => !p.deletedAt).length}</div>
         </a>
+      </div>
+
+      <div class="section-title">VJ 도구</div>
+      <div class="tool-grid">
+        {TOOLS.map((t) => (
+          <a key={t.href} class="card tool-card" href={t.href}>
+            <span class="tool-ic" aria-hidden="true">{t.icon}</span>
+            <span class="tool-name">{t.name}</span>
+            <span class="small muted">{t.desc}</span>
+          </a>
+        ))}
       </div>
 
       <div class="section-title">이어서 작업</div>

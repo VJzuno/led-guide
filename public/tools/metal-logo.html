@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metal Logo Loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 좌측 컨트롤 레일 + 우측 16:9 모니터, 하단 타임라인 */
+:root{
+  --ink:#0E0B1D; --deep:#2A1E4D; --purple:#5A3B8C; --lav:#8B7CC7; --lav-l:#C9C2E3; --slate:#3A3A52;
+  --black:#000000; --point:#5613C8; --point-hi:#7a3ff0; --line:rgba(201,194,227,.12);
+  --f-display:"Chakra Petch",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans KR",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--black);color:var(--lav-l);font:14px/1.5 var(--f-body);display:grid;grid-template-columns:320px 1fr;min-height:100vh}
+aside{background:#07050f;border-right:1px solid var(--line);padding:20px 18px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+h1{font:700 22px/1 var(--f-display);letter-spacing:.06em;margin:0;color:#fff;text-transform:uppercase}
+h1 small{display:block;font:500 11px/1.6 var(--f-mono);letter-spacing:.12em;color:var(--lav);margin-top:6px}
+.grp{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.grp>h2{font:600 10.5px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--lav);margin:0}
+label.row{display:grid;grid-template-columns:88px 1fr 44px;align-items:center;gap:8px;font-size:12.5px}
+label.row output{font:400 11px var(--f-mono);color:var(--lav);text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--point)}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+.seg button{flex:1 1 auto;background:var(--deep);color:var(--lav-l);border:1px solid transparent;border-radius:6px;padding:7px 8px;font:500 12px var(--f-body);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--point);border-color:var(--point-hi);color:#fff}
+.seg button:focus-visible,.btn:focus-visible,#drop:focus-visible{outline:2px solid var(--point-hi);outline-offset:2px}
+#drop{border:1.5px dashed var(--slate);border-radius:10px;padding:16px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:border-color .15s,background .15s}
+#drop.over,#drop:hover{border-color:var(--point-hi);background:rgba(86,19,200,.14)}
+#drop img{max-height:64px;max-width:100%;image-rendering:auto;background:repeating-conic-gradient(#1a1630 0 25%,#100d20 0 50%) 0 0/12px 12px;border-radius:4px}
+#drop span{font-size:12px;color:var(--lav)}
+.btn{background:var(--point);color:#fff;border:0;border-radius:8px;padding:11px 12px;font:700 13px var(--f-display);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;width:100%}
+.btn.ghost{background:transparent;color:var(--lav-l);border:1px solid var(--slate)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.note{font-size:11.5px;color:#9a93bd;margin:0}
+main{display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:14px}
+.monitor{position:relative;width:100%;max-width:calc((100vh - 150px)*16/9);margin:0 auto;aspect-ratio:16/9;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#000}
+.monitor.checker{background:repeating-conic-gradient(#2a2838 0 25%,#1c1a28 0 50%) 0 0/32px 32px}
+.monitor canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;left:12px;top:10px;font:500 11px var(--f-mono);letter-spacing:.1em;color:rgba(201,194,227,.55);pointer-events:none}
+.hud.r{left:auto;right:12px}
+.timeline{width:100%;max-width:calc((100vh - 150px)*16/9);margin:0 auto;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+.play{width:38px;height:38px;border-radius:50%;border:1px solid var(--slate);background:var(--deep);color:#fff;cursor:pointer;font-size:14px}
+.track{position:relative;height:30px}
+.track .phase{position:absolute;top:0;height:8px;border-radius:3px;font:500 10px/1 var(--f-mono);letter-spacing:.08em}
+.track .phase span{position:absolute;top:12px;left:0;color:var(--lav);white-space:nowrap}
+.track .p1{left:0;width:calc(50% - 2px);background:var(--point)}
+.track .p2{left:calc(50% + 2px);width:calc(50% - 2px);background:var(--slate)}
+.track input{position:absolute;inset:-4px 0 auto;width:100%;margin:0}
+#tc{font:600 13px var(--f-mono);color:#fff;font-variant-numeric:tabular-nums;min-width:96px;text-align:right}
+.ease-row{display:grid;grid-template-columns:60px 1fr;gap:10px;align-items:center}
+.ease-row label.row{grid-template-columns:36px 1fr 36px}
+.curve{width:60px;height:36px;background:var(--black);border:1px solid var(--line);border-radius:4px}
+.grp>h2+.seg,.ease-row+h2{margin-top:2px}
+.ease-row+h2{padding-top:8px}
+.prog{height:6px;background:var(--deep);border-radius:3px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--point);transition:width .1s}
+#status{font:400 11.5px var(--f-mono);color:var(--lav);min-height:1.5em;margin:0}
+.preset-row{display:flex;gap:6px;align-items:center}
+.preset-row select,.preset-row input[type=text]{flex:1;min-width:0;background:var(--ink);color:#fff;border:1px solid var(--slate);border-radius:6px;padding:7px 8px;font:inherit;font-size:12.5px}
+.preset-row .btn{flex:none;width:auto;padding-inline:10px}
+@media (max-width:860px){body{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}main{padding:16px}}
+</style>
+<script src="vendor/d3-array.min.js"></script>
+<script src="vendor/d3-contour.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script type="importmap">
+{"imports":{
+  "three":"./vendor/three/three.module.min.js",
+  "three/addons/":"./vendor/three/addons/"
+}}
+</script>
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="../icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<script src="hub.js"></script>
+</head>
+<body>
+<aside>
+  <h1>Metal Logo Loop<small>1920×1080 · 10s · ALPHA</small></h1>
+
+  <div class="grp">
+    <h2>로고</h2>
+    <div id="drop" tabindex="0" role="button" aria-label="PNG 로고 불러오기">
+      <img id="thumb" alt="">
+      <span>클릭 · 드래그 · ⌘V로 PNG 교체<br>기본 로고: ZUNO</span>
+    </div>
+    <input type="file" id="file" accept="image/*,.png,.svg" hidden>
+    <div class="seg" data-key="mask">
+      <button data-v="alpha">알파 기준</button>
+      <button data-v="ainv" aria-pressed="true">알파 반전</button>
+      <button data-v="luma">밝은 부분</button>
+      <button data-v="inv">어두운 부분</button>
+    </div>
+    <label class="row">임계값<input type="range" id="thr" min="0.05" max="0.95" step="0.01" value="0.5"><output></output></label>
+    <label class="row">디테일<input type="range" id="res" min="200" max="900" step="50" value="500"><output></output></label>
+  </div>
+
+  <div class="grp">
+    <h2>입체</h2>
+    <label class="row">두께<input type="range" id="depth" min="0.1" max="3" step="0.05" value="1.1"><output></output></label>
+    <label class="row">베벨<input type="range" id="bevel" min="0" max="0.4" step="0.01" value="0.12"><output></output></label>
+    <label class="row">크기<input type="range" id="size" min="0.4" max="1.4" step="0.01" value="1"><output></output></label>
+  </div>
+
+  <div class="grp">
+    <h2>재질 · 라이팅</h2>
+    <div class="seg" data-key="mat">
+      <button data-v="chrome" aria-pressed="true">크롬</button>
+      <button data-v="gold">골드</button>
+      <button data-v="lav">라벤더</button>
+      <button data-v="logo">로고 컬러</button>
+    </div>
+    <div class="seg" data-key="env">
+      <button data-v="studio" aria-pressed="true">스튜디오</button>
+      <button data-v="neon">퍼플 네온</button>
+      <button data-v="hard">하드 콘트라스트</button>
+    </div>
+    <label class="row">거칠기<input type="range" id="rough" min="0" max="0.6" step="0.01" value="0.14"><output></output></label>
+    <label class="row">노출<input type="range" id="expo" min="0.4" max="2.5" step="0.01" value="1.15"><output></output></label>
+    <label class="row">빛 스윕<input type="range" id="sweep" min="0" max="1.5" step="0.01" value="0.7"><output></output></label>
+  </div>
+
+  <div class="grp">
+    <h2>모션</h2>
+    <div class="seg" data-key="dir">
+      <button data-v="1" aria-pressed="true">↻ 왼→오</button>
+      <button data-v="-1">↺ 오→왼</button>
+    </div>
+    <div class="seg" data-key="move">
+      <button data-v="f" aria-pressed="true">뒤로 빼기 OFF</button>
+      <button data-v="fb">뒤로 빼기 ON</button>
+    </div>
+    <label class="row">무빙 거리<input type="range" id="amp" min="0" max="9" step="0.1" value="4.5"><output></output></label>
+    <label class="row">기울기<input type="range" id="tilt" min="0" max="0.5" step="0.01" value="0.12"><output></output></label>
+  </div>
+
+  <div class="grp">
+    <h2>이징 · 회전 (0–5s)</h2>
+    <div class="seg" data-key="eRot">
+      <button data-v="in">이즈 인</button>
+      <button data-v="out">이즈 아웃</button>
+      <button data-v="inout" aria-pressed="true">인 · 아웃</button>
+      <button data-v="lin">리니어</button>
+    </div>
+    <div class="ease-row"><canvas class="curve" id="cvRot" width="120" height="72"></canvas>
+      <label class="row">강도<input type="range" id="pRot" min="1.2" max="7" step="0.1" value="3"><output></output></label></div>
+
+    <h2>이징 · 무빙 (5–10s)</h2>
+    <div class="seg" data-key="eMove">
+      <button data-v="in">이즈 인</button>
+      <button data-v="out">이즈 아웃</button>
+      <button data-v="inout" aria-pressed="true">인 · 아웃</button>
+      <button data-v="lin">리니어</button>
+    </div>
+    <div class="ease-row"><canvas class="curve" id="cvMove" width="120" height="72"></canvas>
+      <label class="row">강도<input type="range" id="pMove" min="1.2" max="7" step="0.1" value="2"><output></output></label></div>
+    <p class="note" id="easeNote"></p>
+  </div>
+
+  <div class="grp">
+    <h2>프리셋</h2>
+    <div class="preset-row">
+      <select id="presetSel" aria-label="저장된 프리셋"><option value="">저장된 프리셋 없음</option></select>
+      <button class="btn ghost" id="presetLoad">불러오기</button>
+      <button class="btn ghost" id="presetDel" aria-label="선택한 프리셋 삭제">삭제</button>
+    </div>
+    <div class="preset-row">
+      <input type="text" id="presetName" placeholder="이름 (예: 크롬 느리게)" maxlength="40">
+      <button class="btn" id="presetSave">저장</button>
+    </div>
+    <div class="preset-row">
+      <button class="btn ghost" id="presetExport">파일로 내보내기</button>
+      <button class="btn ghost" id="presetImport">파일에서 가져오기</button>
+      <input type="file" id="presetFile" accept=".json,application/json" hidden>
+    </div>
+    <p class="note">모양·재질·모션·이징 값을 저장해요 (로고 이미지는 제외). 마지막 설정은 다음에 열 때 자동으로 돌아와요.</p>
+  </div>
+
+  <div class="grp">
+    <h2>내보내기</h2>
+    <div class="seg" data-key="fps">
+      <button data-v="30" aria-pressed="true">30 fps</button>
+      <button data-v="60">60 fps</button>
+    </div>
+    <div class="seg" data-key="bg">
+      <button data-v="black" aria-pressed="true">미리보기 블랙</button>
+      <button data-v="checker">체커(알파 확인)</button>
+    </div>
+    <button class="btn" id="expPng">PNG 시퀀스 (ZIP)</button>
+    <button class="btn ghost" id="expWebm">WebM 알파 (실시간 녹화)</button>
+    <div class="prog"><i id="bar"></i></div>
+    <p id="status"></p>
+    <p class="note">PNG 시퀀스가 프레임 정확 + 알파 보장. After Effects에서 시퀀스로 불러와 DXV3(알파) 또는 ProRes 4444로 렌더하면 Resolume에서 바로 루프됩니다. 마지막 프레임 다음이 첫 프레임이라 중복 없이 이어집니다.</p>
+  </div>
+</aside>
+
+<main>
+  <div class="monitor" id="mon">
+    <canvas id="cv" width="1920" height="1080"></canvas>
+    <div class="hud">PREVIEW 1920×1080</div>
+    <div class="hud r" id="phaseHud">ROTATE</div>
+  </div>
+  <div class="timeline">
+    <button class="play" id="play" aria-label="재생/정지">❚❚</button>
+    <div class="track">
+      <div class="phase p1"><span>0–5s 회전 360°</span></div>
+      <div class="phase p2"><span>5–10s 앞뒤 무빙</span></div>
+      <input type="range" id="scrub" min="0" max="9.999" step="0.001" value="0" aria-label="타임라인">
+    </div>
+    <div id="tc">00:00.00</div>
+  </div>
+</main>
+
+<script type="module">
+import * as THREE from 'three';
+import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const W = 1920, H = 1080, DUR = 10, HALF = 5;
+const $ = id => document.getElementById(id);
+const S = { mask:'ainv', mat:'chrome', env:'studio', dir:1, move:'f', eRot:'inout', eMove:'inout', fps:30, bg:'black' };
+
+/* ---------- renderer ---------- */
+const canvas = $('cv');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true, premultipliedAlpha:false, preserveDrawingBuffer:true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H, false);
+renderer.setClearColor(0x000000, 0);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, W/H, 0.1, 200);
+camera.position.set(0, 0, 22);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+
+const ENV = {
+  studio: { base:0x07060c, strips:[
+    [30,5, 0xffffff, 5,  [0,18,4]],
+    [3,26, 0xffffff, 9,  [-19,0,7]],
+    [3,26, 0xC9C2E3, 6,  [19,2,6]],
+    [24,4, 0x8B7CC7, 2.5,[0,-16,-10]],
+    [7,7,  0xffffff, 12, [9,7,22]],
+    [2,18, 0xffffff, 4,  [-8,-4,-20]],
+    [50,16, 0xd8d4ea, 1.5,[0,7,40]],
+    [50,16, 0x3A3A52, .35,[0,-9.2,40]],
+  ]},
+  neon: { base:0x0E0B1D, strips:[
+    [30,4, 0xC9C2E3, 4,  [0,18,4]],
+    [3,26, 0x8B7CC7, 12, [-19,0,7]],
+    [3,26, 0x5613C8, 16, [19,2,6]],
+    [24,5, 0x5613C8, 7,  [0,-16,-6]],
+    [6,6,  0xffffff, 9,  [8,6,22]],
+    [2,20, 0xC9C2E3, 6,  [10,-4,-18]],
+    [50,16, 0xC9C2E3, 1.3,[0,7,40]],
+    [50,16, 0x2A1E4D, .6,[0,-9.2,40]],
+  ]},
+  hard: { base:0x000000, strips:[
+    [40,2.2, 0xffffff, 16, [0,14,10]],
+    [1.6,30, 0xffffff, 18, [-16,0,12]],
+    [1.6,30, 0xffffff, 10, [17,0,3]],
+    [30,1.5, 0xffffff, 6,  [0,-14,-4]],
+  ]},
+};
+const envCache = {};
+function getEnv(key){
+  if (envCache[key]) return envCache[key];
+  const cfg = ENV[key], s = new THREE.Scene();
+  s.add(new THREE.Mesh(new THREE.SphereGeometry(60, 32, 16), new THREE.MeshBasicMaterial({ color:cfg.base, side:THREE.BackSide })));
+  for (const [w,h,c,i,p] of cfg.strips){
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w,h), new THREE.MeshBasicMaterial({ color:new THREE.Color(c).multiplyScalar(i), side:THREE.DoubleSide }));
+    m.position.set(...p); m.lookAt(0,0,0); s.add(m);
+  }
+  return envCache[key] = pmrem.fromScene(s, 0.015).texture;
+}
+
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(6, 8, 12); scene.add(key);
+const rim = new THREE.DirectionalLight(0x5613C8, 1.4); rim.position.set(-10, 3, -8); scene.add(rim);
+
+/* ---------- materials ---------- */
+const capMat = new THREE.MeshPhysicalMaterial({ metalness:1, roughness:.14, clearcoat:.4, clearcoatRoughness:.08 });
+const sideMat = new THREE.MeshPhysicalMaterial({ metalness:1, roughness:.2, clearcoat:.2 });
+let logoTex = null;
+const MAT_COLOR = { chrome:0xf2f2f6, gold:0xffc96b, lav:0xb6a8ec, logo:0xffffff };
+function applyMaterial(){
+  const r = +$('rough').value;
+  capMat.roughness = r; sideMat.roughness = Math.min(1, r + .08);
+  const c = MAT_COLOR[S.mat];
+  capMat.color.set(c);
+  sideMat.color.set(S.mat === 'logo' ? MAT_COLOR.chrome : c);
+  capMat.map = (S.mat === 'logo') ? logoTex : null;
+  capMat.metalness = (S.mat === 'logo') ? .85 : 1;
+  capMat.needsUpdate = true; sideMat.needsUpdate = true;
+  scene.environment = getEnv(S.env);
+  rim.color.set(S.env === 'hard' ? 0xffffff : 0x5613C8);
+  renderer.toneMappingExposure = +$('expo').value;
+}
+
+/* ---------- logo → 3D ---------- */
+const pivot = new THREE.Group(); scene.add(pivot);
+let mesh = null, srcImg = null, srcBorderOpaque = false;
+
+function ringArea(r){ let a=0; for(let i=0,j=r.length-1;i<r.length;j=i++) a += (r[j][0]+r[i][0])*(r[j][1]-r[i][1]); return a/2; }
+function smoothRing(r, it){
+  for (let k=0;k<it;k++){
+    const n=r.length, o=new Array(n);
+    for (let i=0;i<n;i++){ const a=r[(i-1+n)%n], b=r[i], c=r[(i+1)%n]; o[i]=[(a[0]+2*b[0]+c[0])/4, (a[1]+2*b[1]+c[1])/4]; }
+    r=o;
+  }
+  return r;
+}
+function thin(r, d){
+  r = smoothRing(r, 3);
+  const out=[r[0]];
+  for (let i=1;i<r.length-1;i++){ const p=out[out.length-1]; if (Math.hypot(r[i][0]-p[0], r[i][1]-p[1]) >= d) out.push(r[i]); }
+  return out;
+}
+
+function buildLogo(){
+  if (!srcImg) return;
+  const iw = srcImg.naturalWidth, ih = srcImg.naturalHeight;
+  const P = Math.round(Math.max(iw, ih) * .03) + 4;
+  const W0 = iw + 2*P, H0 = ih + 2*P;
+
+  // 고해상도 텍스처 (로고 컬러 모드용)
+  const k = Math.min(1, 2048 / Math.max(W0, H0));
+  const hi = document.createElement('canvas'); hi.width = Math.round(W0*k); hi.height = Math.round(H0*k);
+  hi.getContext('2d').drawImage(srcImg, P*k, P*k, iw*k, ih*k);
+
+  // 윤곽 추출용 그리드
+  const maxDim = +$('res').value, g = maxDim / Math.max(W0, H0);
+  const gw = Math.max(8, Math.round(W0*g)), gh = Math.max(8, Math.round(H0*g));
+  const lo = document.createElement('canvas'); lo.width = gw; lo.height = gh;
+  const lctx = lo.getContext('2d', { willReadFrequently:true });
+  lctx.drawImage(hi, 0, 0, gw, gh);
+  const px = lctx.getImageData(0, 0, gw, gh).data;
+  const vals = new Float64Array(gw*gh);
+  // 알파(자동): 이미지 테두리가 꽉 차 있으면 = 글자가 뚫린 PNG → 투명한 부분을 로고로
+  const invA = S.mask === 'ainv' || (S.mask === 'alpha' && srcBorderOpaque);
+  const gx0 = P*g, gx1 = (P+iw)*g, gy0 = P*g, gy1 = (P+ih)*g;
+  for (let i=0;i<gw*gh;i++){
+    const a = px[i*4+3]/255, l = (0.2126*px[i*4]+0.7152*px[i*4+1]+0.0722*px[i*4+2])/255;
+    if (invA){
+      const x = i % gw + .5, y = Math.floor(i / gw) + .5;
+      vals[i] = (x > gx0 && x < gx1 && y > gy0 && y < gy1) ? 1 - a : 0;
+    } else vals[i] = S.mask==='alpha' ? a : S.mask==='luma' ? l*a : (1-l)*a;
+  }
+  if (invA){ const hx = hi.getContext('2d'); hx.fillStyle = '#fff'; hx.fillRect(0,0,hi.width,hi.height); }
+  // 테두리 0으로 (닫힌 윤곽 보장)
+  for (let x=0;x<gw;x++){ vals[x]=0; vals[(gh-1)*gw+x]=0; }
+  for (let y=0;y<gh;y++){ vals[y*gw]=0; vals[y*gw+gw-1]=0; }
+
+  const thr = +$('thr').value;
+  const mp = d3.contours().size([gw, gh]).smooth(true).thresholds([thr])(vals)[0];
+  const s = 10 / Math.max(gw, gh);
+  const toV = ([x,y]) => new THREE.Vector2((x - gw/2)*s, (gh/2 - y)*s);
+  const minA = Math.max(3, gw*gh*0.00004);
+  const shapes = [];
+  for (const poly of mp.coordinates){
+    const outer = thin(poly[0].slice(0,-1), 1.1);
+    if (outer.length < 3 || Math.abs(ringArea(outer)) < minA) continue;
+    const shape = new THREE.Shape(outer.map(toV));
+    for (let h=1; h<poly.length; h++){
+      const ring = thin(poly[h].slice(0,-1), 1.1);
+      if (ring.length < 3 || Math.abs(ringArea(ring)) < minA) continue;
+      shape.holes.push(new THREE.Path(ring.map(toV)));
+    }
+    shapes.push(shape);
+  }
+  if (!shapes.length){ setStatus('윤곽을 못 찾았어요. 마스크 기준이나 임계값을 바꿔 보세요.'); return; }
+
+  const depth = +$('depth').value, bev = +$('bevel').value;
+  let geo = new THREE.ExtrudeGeometry(shapes, {
+    depth, steps:1, curveSegments:1,
+    bevelEnabled: bev > 0, bevelThickness: bev, bevelSize: bev*.55, bevelSegments: 6,
+  });
+  // UV: 원본 이미지 좌표에 맞춤
+  const pos = geo.attributes.position, uv = geo.attributes.uv;
+  for (let i=0;i<pos.count;i++) uv.setXY(i, pos.getX(i)/(s*gw) + .5, pos.getY(i)/(s*gh) + .5);
+  uv.needsUpdate = true;
+  geo = toCreasedNormals(geo, THREE.MathUtils.degToRad(50));
+  // 앞/뒷면은 완전 평면 노멀 유지 (베벨과 섞이면 면에 사선 줄이 생김)
+  { const n = geo.attributes.normal, p = geo.attributes.position, cap = geo.groups.find(gr => gr.materialIndex === 0);
+    if (cap) for (let i = cap.start; i < cap.start + cap.count; i += 3){
+      const zs = p.getZ(i) + p.getZ(i+1) + p.getZ(i+2), sgn = zs/3 > depth/2 ? 1 : -1;
+      for (let j=0;j<3;j++) n.setXYZ(i+j, 0, 0, sgn);
+    }
+    n.needsUpdate = true; }
+  geo.computeBoundingBox();
+  const c = new THREE.Vector3(); geo.boundingBox.getCenter(c); geo.translate(-c.x, -c.y, -c.z);
+  geo.computeBoundingBox();
+
+  if (logoTex) logoTex.dispose();
+  logoTex = new THREE.CanvasTexture(hi); logoTex.colorSpace = THREE.SRGBColorSpace; logoTex.anisotropy = 8;
+
+  if (mesh){ mesh.geometry.dispose(); pivot.remove(mesh); }
+  mesh = new THREE.Mesh(geo, [capMat, sideMat]);
+  pivot.add(mesh);
+  fitLogo();
+  applyMaterial();
+  setStatus(`${invA && S.mask==='alpha' ? '알파 반전 자동 적용 · ' : ''}윤곽 ${shapes.length}개 · 버텍스 ${geo.attributes.position.count.toLocaleString()}`);
+}
+
+function fitLogo(){
+  if (!mesh) return;
+  const bb = mesh.geometry.boundingBox, sz = new THREE.Vector3(); bb.getSize(sz);
+  const f = Math.min(11.5/sz.x, 6.2/sz.y) * +$('size').value;
+  mesh.scale.setScalar(f);
+}
+
+/* ---------- motion (10s seamless) ---------- */
+function ease(type, p, u){
+  u = Math.min(1, Math.max(0, u));
+  if (type === 'in') return Math.pow(u, p);
+  if (type === 'out') return 1 - Math.pow(1-u, p);
+  if (type === 'inout') return u < .5 ? Math.pow(2*u, p)/2 : 1 - Math.pow(2-2*u, p)/2;
+  return u;
+}
+function drawCurve(id, type, p){
+  const c = $(id), x = c.getContext('2d'), w = c.width, h = c.height, m = 8;
+  x.clearRect(0,0,w,h);
+  x.strokeStyle = 'rgba(201,194,227,.15)'; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(m, h-m); x.lineTo(w-m, m); x.stroke();
+  x.strokeStyle = '#7a3ff0'; x.lineWidth = 2.5; x.beginPath();
+  for (let i=0;i<=60;i++){ const u=i/60, X=m+u*(w-2*m), Y=h-m-ease(type,p,u)*(h-2*m); i?x.lineTo(X,Y):x.moveTo(X,Y); }
+  x.stroke();
+}
+function updateEaseUI(){
+  drawCurve('cvRot', S.eRot, +$('pRot').value);
+  drawCurve('cvMove', S.eMove, +$('pMove').value);
+  const hard = [];
+  if (S.eRot !== 'inout') hard.push('회전');
+  if (S.eMove !== 'inout') hard.push('무빙');
+  $('easeNote').textContent = hard.length
+    ? `${hard.join('·')}이 인·아웃이 아니라서 구간 경계(5초/루프 지점)에서 속도가 툭 끊겨요. 의도한 거면 OK.`
+    : '둘 다 인·아웃이면 5초 지점과 루프 지점 모두 부드럽게 이어집니다.';
+}
+function pose(t){
+  t = ((t % DUR) + DUR) % DUR;
+  const amp = +$('amp').value, tilt = +$('tilt').value;
+  let ry = 0, z = 0, rx = 0;
+  if (t < HALF){
+    const u = t/HALF;
+    ry = S.dir * Math.PI*2 * ease(S.eRot, +$('pRot').value, u);
+  } else {
+    const e = ease(S.eMove, +$('pMove').value, (t-HALF)/HALF);
+    if (S.move === 'fb'){ z = amp*Math.sin(Math.PI*2*e); rx = -tilt*Math.sin(Math.PI*2*e); }
+    else { const b = (1 - Math.cos(Math.PI*2*e))/2; z = amp*b; rx = -tilt*b; }
+  }
+  pivot.rotation.set(rx, ry, 0);
+  pivot.position.z = z;
+  scene.environmentRotation.y = +$('sweep').value * Math.sin(Math.PI*2*t/DUR);
+  scene.environmentRotation.x = +$('sweep').value * .25 * Math.sin(Math.PI*4*t/DUR);
+  $('phaseHud').textContent = t < HALF ? 'ROTATE' : 'MOVE';
+}
+function renderAt(t){ pose(t); renderer.render(scene, camera); }
+
+/* ---------- playback ---------- */
+let playing = true, tNow = 0, last = performance.now(), busy = false;
+function fmt(t){ const s = Math.floor(t), cs = Math.floor((t - s)*100); return `00:${String(s).padStart(2,'0')}.${String(cs).padStart(2,'0')}`; }
+function loop(now){
+  const dt = (now - last)/1000; last = now;
+  if (!busy){
+    if (playing) tNow = (tNow + dt) % DUR;
+    renderAt(tNow);
+    $('scrub').value = tNow; $('tc').textContent = fmt(tNow);
+  }
+  requestAnimationFrame(loop);
+}
+$('play').onclick = () => { playing = !playing; $('play').textContent = playing ? '❚❚' : '▶'; };
+$('scrub').oninput = e => { tNow = +e.target.value; playing = false; $('play').textContent = '▶'; };
+
+/* ---------- controls ---------- */
+const rebuildKeys = ['thr','res','depth','bevel'];
+let rbTimer;
+document.querySelectorAll('label.row input').forEach(inp => {
+  const out = inp.parentElement.querySelector('output');
+  const show = () => out.textContent = (+inp.value).toFixed(inp.step < 1 ? 2 : 0);
+  show();
+  inp.addEventListener('input', () => {
+    show();
+    if (rebuildKeys.includes(inp.id)){ clearTimeout(rbTimer); rbTimer = setTimeout(buildLogo, 120); }
+    else if (inp.id === 'size') fitLogo();
+    else if (inp.id === 'pRot' || inp.id === 'pMove') updateEaseUI();
+    else applyMaterial();
+  });
+});
+document.querySelectorAll('.seg').forEach(seg => {
+  seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    const k = seg.dataset.key, v = b.dataset.v;
+    S[k] = (k==='dir'||k==='fps') ? +v : v;
+    if (k === 'mask') buildLogo();
+    else if (k === 'eRot' || k === 'eMove') updateEaseUI();
+    else if (k === 'bg') $('mon').classList.toggle('checker', v === 'checker');
+    else applyMaterial();
+  });
+});
+
+/* ---------- load image ---------- */
+let baseName = 'logo';
+function loadSrc(url, name){
+  const img = new Image();
+  img.onload = () => {
+    srcImg = img; $('thumb').src = url;
+    srcBorderOpaque = borderOpaque(img);
+    try { buildLogo(); }
+    catch (err){ console.error(err); setStatus('3D 변환 실패: ' + err.message + ' — 임계값/디테일을 바꿔 보세요.'); }
+  };
+  img.onerror = () => setStatus('이미지를 읽지 못했어요. PNG·JPG·SVG 파일인지 확인해 주세요.');
+  img.src = url;
+  if (name) baseName = name.replace(/\.[^.]+$/, '').replace(/[^\w\-가-힣]+/g, '_') || 'logo';
+}
+function borderOpaque(img){
+  const w = Math.min(400, img.naturalWidth), h = Math.max(2, Math.round(img.naturalHeight * w / img.naturalWidth));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', { willReadFrequently:true }); x.drawImage(img, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data; let sum = 0, n = 0;
+  const at = (X, Y) => { sum += d[(Y*w + X)*4 + 3]; n++; };
+  for (let X=0; X<w; X++){ at(X, 0); at(X, h-1); }
+  for (let Y=0; Y<h; Y++){ at(0, Y); at(w-1, Y); }
+  return sum / n / 255 > .85;
+}
+function handleFile(f){
+  if (!f) return;
+  if (!/^image\//.test(f.type) && !/\.(png|jpe?g|webp|svg|gif)$/i.test(f.name)){ setStatus(`이미지 파일이 아니에요: ${f.name}`); return; }
+  setStatus(`불러오는 중… ${f.name}`);
+  const rd = new FileReader();
+  rd.onload = () => {
+    S.mask = 'alpha';
+    document.querySelectorAll('[data-key=mask] button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === 'alpha'));
+    loadSrc(rd.result, f.name); drop.querySelector('span').textContent = f.name; };
+  rd.onerror = () => setStatus('파일을 읽지 못했어요. 다시 시도해 주세요.');
+  rd.readAsDataURL(f);
+}
+const drop = $('drop'), file = $('file');
+drop.onclick = () => file.click();
+drop.onkeydown = e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); file.click(); } };
+file.onchange = () => { handleFile(file.files[0]); file.value = ''; };
+// 화면 어디에 떨어뜨려도 받기
+let dragDepth = 0;
+window.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; drop.classList.add('over'); });
+window.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+window.addEventListener('dragleave', e => { if (--dragDepth <= 0){ dragDepth = 0; drop.classList.remove('over'); } });
+window.addEventListener('drop', e => { e.preventDefault(); dragDepth = 0; drop.classList.remove('over'); handleFile(e.dataTransfer.files[0]); });
+// Cmd+V 붙여넣기
+window.addEventListener('paste', e => {
+  const it = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (it){ const f = it.getAsFile(); handleFile(new File([f], 'pasted_logo.png', { type: f.type })); }
+});
+
+const DEFAULT_LOGO = 'data:image/png;base64,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';
+/* ---------- export ---------- */
+function setStatus(m){ $('status').textContent = m; }
+function setBar(p){ $('bar').style.width = (p*100).toFixed(1) + '%'; }
+function save(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+function lock(on){ busy = on; $('expPng').disabled = on; $('expWebm').disabled = on; }
+
+$('expPng').onclick = async () => {
+  if (!mesh) return;
+  lock(true);
+  const fps = S.fps, N = DUR*fps, zip = new JSZip(), dir = zip.folder(`${baseName}_${fps}fps`);
+  try{
+    for (let i=0;i<N;i++){
+      renderAt(i/fps);
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      dir.file(`${baseName}_${String(i).padStart(5,'0')}.png`, blob);
+      setBar((i+1)/N*.85); setStatus(`렌더링 ${i+1}/${N}`);
+      if (i % 4 === 0) await new Promise(r => setTimeout(r));
+    }
+    setStatus('ZIP 묶는 중…');
+    const out = await zip.generateAsync({ type:'blob', compression:'STORE' }, m => setBar(.85 + m.percent/100*.15));
+    save(out, `${baseName}_metal_loop_${fps}fps.zip`);
+    setStatus(`완료 · ${N}프레임 · ${(out.size/1048576).toFixed(0)}MB`);
+  } catch(err){ setStatus('내보내기 실패: ' + err.message); }
+  lock(false);
+};
+
+$('expWebm').onclick = async () => {
+  if (!mesh) return;
+  const types = ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  const mime = types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t));
+  if (!mime){ setStatus('이 브라우저는 WebM 녹화를 지원하지 않아요. Chrome에서 열어 주세요.'); return; }
+  lock(true);
+  const fps = S.fps, N = DUR*fps;
+  const stream = canvas.captureStream(0), track = stream.getVideoTracks()[0];
+  const rec = new MediaRecorder(stream, { mimeType:mime, videoBitsPerSecond: 40e6 });
+  const chunks = []; rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  const done = new Promise(r => rec.onstop = r);
+  rec.start();
+  const t0 = performance.now();
+  for (let i=0;i<N;i++){
+    renderAt(i/fps); track.requestFrame();
+    setBar((i+1)/N); setStatus(`녹화 ${i+1}/${N}`);
+    const wait = t0 + (i+1)*1000/fps - performance.now();
+    await new Promise(r => setTimeout(r, Math.max(0, wait)));
+  }
+  rec.stop(); await done;
+  save(new Blob(chunks, { type:'video/webm' }), `${baseName}_metal_loop_${fps}fps.webm`);
+  setStatus('WebM 저장 완료 (Chrome VP9/VP8 알파)');
+  lock(false);
+};
+
+/* ---------- boot ---------- */
+/* ---------- 프리셋 (N-02) ---------- */
+const PRESET_KEY = 'metalLogo.presets.v1', LAST_KEY = 'metalLogo.last.v1';
+// 마스크는 로고 이미지마다 달라서 프리셋에 넣지 않음
+const SEG_KEYS = ['mat','env','dir','move','eRot','eMove','fps','bg'];
+const RANGE_IDS = [...document.querySelectorAll('label.row input[type=range]')].map(i => i.id);
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+function snapshot(){
+  const seg = {}; SEG_KEYS.forEach(k => seg[k] = S[k]);
+  const rng = {}; RANGE_IDS.forEach(id => rng[id] = +$(id).value);
+  return { seg, rng };
+}
+function applySnapshot(p, rebuild = true){
+  if (!p) return;
+  const before = rebuildKeys.map(k => $(k).value).join();
+  for (const [k, v] of Object.entries(p.seg || {})) {
+    if (!SEG_KEYS.includes(k)) continue;
+    const seg = document.querySelector(`.seg[data-key="${k}"]`);
+    const b = seg && seg.querySelector(`button[data-v="${v}"]`);
+    if (!b) continue;
+    S[k] = (k==='dir'||k==='fps') ? +v : v;
+    seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  }
+  for (const [id, v] of Object.entries(p.rng || {})) {
+    const inp = $(id); if (!inp || !RANGE_IDS.includes(id)) continue;
+    inp.value = v;
+    const out = inp.parentElement.querySelector('output');
+    if (out) out.textContent = (+inp.value).toFixed(inp.step < 1 ? 2 : 0);
+  }
+  $('mon').classList.toggle('checker', S.bg === 'checker');
+  applyMaterial(); updateEaseUI();
+  if (rebuild) { if (before !== rebuildKeys.map(k => $(k).value).join()) buildLogo(); else fitLogo(); }
+}
+let presets = lsGet(PRESET_KEY) || {};
+function renderPresets(sel){
+  const names = Object.keys(presets).sort((a, b) => a.localeCompare(b, 'ko'));
+  $('presetSel').innerHTML = names.length ? names.map(n => `<option>${n.replace(/[<&"]/g, c => ({'<':'&lt;','&':'&amp;','"':'&quot;'}[c]))}</option>`).join('') : '<option value="">저장된 프리셋 없음</option>';
+  if (sel && presets[sel]) $('presetSel').value = sel;
+  $('presetLoad').disabled = $('presetDel').disabled = !names.length;
+}
+$('presetSave').onclick = () => {
+  const n = $('presetName').value.trim() || `프리셋 ${Object.keys(presets).length + 1}`;
+  presets[n] = snapshot(); lsSet(PRESET_KEY, presets); renderPresets(n);
+  $('presetName').value = ''; $('status').textContent = `프리셋 "${n}" 저장됨`;
+};
+$('presetLoad').onclick = () => { const n = $('presetSel').value; if (presets[n]) { applySnapshot(presets[n]); $('status').textContent = `프리셋 "${n}" 적용`; } };
+$('presetDel').onclick = () => {
+  const n = $('presetSel').value; if (!presets[n]) return;
+  if ($('presetDel').dataset.armed !== n) { $('presetDel').dataset.armed = n; $('presetDel').textContent = '한 번 더'; setTimeout(() => { delete $('presetDel').dataset.armed; $('presetDel').textContent = '삭제'; }, 2500); return; }
+  delete presets[n]; lsSet(PRESET_KEY, presets); renderPresets();
+  delete $('presetDel').dataset.armed; $('presetDel').textContent = '삭제'; $('status').textContent = `프리셋 "${n}" 삭제됨`;
+};
+$('presetExport').onclick = () => {
+  const blob = new Blob([JSON.stringify({ app: 'metal-logo-loop', version: 1, presets }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'metal-logo-presets.json';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('presetImport').onclick = () => $('presetFile').click();
+$('presetFile').onchange = e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  f.text().then(t => {
+    const d = JSON.parse(t); const add = d && d.presets;
+    if (!add || typeof add !== 'object') throw 0;
+    let n = 0; for (const [k, v] of Object.entries(add)) if (v && v.seg && v.rng) { presets[k] = v; n++; }
+    lsSet(PRESET_KEY, presets); renderPresets(); $('status').textContent = `프리셋 ${n}개 가져옴`;
+  }).catch(() => { $('status').textContent = '프리셋 파일(.json)이 아니에요.'; });
+};
+// 마지막 설정 자동 저장 / 복원
+let lastTimer;
+document.querySelector('aside').addEventListener('input', () => { clearTimeout(lastTimer); lastTimer = setTimeout(() => lsSet(LAST_KEY, snapshot()), 300); });
+document.querySelector('aside').addEventListener('click', e => { if (e.target.closest('.seg button')) { clearTimeout(lastTimer); lastTimer = setTimeout(() => lsSet(LAST_KEY, snapshot()), 300); } });
+renderPresets();
+applySnapshot(lsGet(LAST_KEY), false);
+
+applyMaterial();
+updateEaseUI();
+loadSrc(DEFAULT_LOGO, 'ZUNO.png');
+requestAnimationFrame(loop);
+window.__renderAt = renderAt;
+</script>
+</body>
+</html>

@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VJ 근무일지</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #000000;
+            color: #FFFFFF;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #0E0B1D;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            color: #ffffff;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .btn-primary {
+            background: #5613C8;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #6A2BE0;
+        }
+
+        .btn-secondary {
+            background: #3A3A52;
+            border: 1px solid #8B7CC7;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #2A1E4D;
+        }
+
+        .btn-danger {
+            background: #3A3A52;
+            border: 1px solid #e34948;
+            color: #e34948;
+        }
+
+        .btn-danger:hover {
+            background: #4a3a3a;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calendar-header h2 {
+            font-size: 18px;
+            color: #ffffff;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .calendar-nav button {
+            padding: 8px 12px;
+            background: #3A3A52;
+            border: 1px solid #3A3A52;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #FFFFFF;
+        }
+
+        .calendar-nav button:hover {
+            background: #2A1E4D;
+            border-color: #8B7CC7;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            background: #000000;
+            padding: 2px;
+            margin-bottom: 20px;
+        }
+
+        .day-header {
+            background: #2A1E4D;
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border: 1px solid #3A3A52;
+            color: #FFFFFF;
+        }
+
+        .day-header.weekend {
+            color: #ff6b6b;
+        }
+
+        .calendar-day {
+            background: #0E0B1D;
+            padding: 10px;
+            min-height: 100px;
+            border: 1px solid #3A3A52;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            font-size: 11px;
+            color: #FFFFFF;
+        }
+
+        .calendar-day:hover:not(.empty) {
+            border-color: #5613C8;
+            box-shadow: 0 0 8px rgba(86, 19, 200, 0.3);
+        }
+
+        .calendar-day.empty {
+            background: #000000;
+            cursor: default;
+            border: 1px solid #3A3A52;
+        }
+
+        .calendar-day.empty:hover {
+            background: #000000;
+            border-color: #3A3A52;
+        }
+
+        .calendar-day.jang-min-gyu {
+            background: #5a4a3a;
+            color: #ffc9a3;
+        }
+
+        .calendar-day.kim-jun-ho {
+            background: #4a3a5a;
+            color: #d7c3f0;
+        }
+
+        .calendar-day.multi-selected {
+            outline: 3px solid #5613C8;
+            outline-offset: -3px;
+            box-shadow: 0 0 10px rgba(86,19,200,0.6);
+        }
+
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #FFFFFF;
+        }
+
+        .calendar-day.jang-min-gyu .day-number {
+            color: #ffc9a3;
+            font-weight: bold;
+        }
+
+        .calendar-day.kim-jun-ho .day-number {
+            color: #d7c3f0;
+            font-weight: bold;
+        }
+
+        .day-number.sunday {
+            color: #ff6b6b;
+        }
+
+        .calendar-day.jang-min-gyu .day-number.sunday {
+            color: #ff9966;
+        }
+
+        .day-number.saturday {
+            color: #8B7CC7;
+        }
+
+        .calendar-day.kim-jun-ho .day-number.saturday {
+            color: #9966ff;
+        }
+
+        .day-entries {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .entry-badge {
+            font-size: 10px;
+            line-height: 1.4;
+            font-weight: bold;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #0E0B1D;
+            padding: 24px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border: 1px solid #3A3A52;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 16px;
+            font-size: 16px;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .modal-info {
+            background: #3A3A52;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-size: 13px;
+            border: 1px solid #3A3A52;
+        }
+
+        .modal-info-item {
+            margin: 4px 0;
+        }
+
+        .modal-info-label {
+            font-weight: bold;
+            color: #8B7CC7;
+        }
+
+        .modal-info-value {
+            color: #8B7CC7;
+            font-weight: bold;
+        }
+
+        .person-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .modal-entries {
+            background: #3A3A52;
+            border: 1px solid #3A3A52;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .modal-entries-label {
+            font-weight: bold;
+            color: #8B7CC7;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .entry-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0E0B1D;
+            border: 1px solid #3A3A52;
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .entry-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .entry-row-info {
+            color: #FFFFFF;
+        }
+
+        .btn-delete-entry {
+            padding: 5px 10px;
+            border: 1px solid #e34948;
+            background: #3A3A52;
+            color: #e34948;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .btn-delete-entry:hover {
+            background: #4a3a3a;
+        }
+
+        .entry-row-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-edit-entry {
+            padding: 5px 10px;
+            border: 1px solid #8B7CC7;
+            background: #3A3A52;
+            color: #8B7CC7;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .btn-edit-entry:hover {
+            background: #1A1530;
+        }
+
+        .entry-row-editing {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-edit-time {
+            margin-left: 8px;
+            padding: 3px 8px;
+            font-size: 11px;
+            border: 1px solid #8B7CC7;
+            background: #0E0B1D;
+            color: #8B7CC7;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-edit-time:hover {
+            background: #2A1E4D;
+        }
+
+        .time-edit-panel {
+            background: #0E0B1D;
+            border: 1px solid #3A3A52;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 16px;
+        }
+
+        .time-edit-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #FFFFFF;
+            flex-wrap: wrap;
+        }
+
+        .time-edit-row label {
+            color: #8B7CC7;
+        }
+
+        .time-edit-row input[type="time"],
+        .time-edit-row input[type="number"] {
+            background: #3A3A52;
+            border: 1px solid #3A3A52;
+            color: #FFFFFF;
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-size: 12px;
+        }
+
+        .time-edit-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-apply-time,
+        .btn-cancel-time {
+            flex: 1;
+            padding: 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            border: none;
+        }
+
+        .btn-apply-time {
+            background: #5613C8;
+            color: white;
+        }
+
+        .btn-apply-time:hover {
+            background: #6A2BE0;
+        }
+
+        .btn-cancel-time {
+            background: #3A3A52;
+            border: 1px solid #3A3A52;
+            color: #FFFFFF;
+        }
+
+        .btn-cancel-time:hover {
+            background: #2A1E4D;
+        }
+
+        .person-btn {
+            padding: 12px;
+            border: 2px solid #3A3A52;
+            background: #3A3A52;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-align: center;
+            color: #FFFFFF;
+        }
+
+        .person-btn:hover {
+            border-color: #5613C8;
+            background: #2A1E4D;
+        }
+
+        .person-btn.jang {
+            border-color: #5a4a3a;
+            color: #ffc9a3;
+        }
+
+        .person-btn.jang:hover {
+            background: #5a4a3a;
+            color: #ffffff;
+        }
+
+        .person-btn.kim {
+            border-color: #4a3a5a;
+            color: #d7c3f0;
+        }
+
+        .person-btn.kim:hover {
+            background: #4a3a5a;
+            color: #ffffff;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-cancel {
+            background: #3A3A52;
+            border: 1px solid #3A3A52;
+            color: #FFFFFF;
+        }
+
+        .btn-cancel:hover {
+            background: #2A1E4D;
+        }
+
+        .info-box {
+            background: #3A3A52;
+            border: 1px solid #3A3A52;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #C9C2E3;
+            margin-top: 12px;
+        }
+
+        .multi-select-bar {
+            position: sticky;
+            bottom: 0;
+            background: #1A1530;
+            border: 1px solid #5613C8;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .multi-select-count {
+            font-weight: bold;
+            color: #8B7CC7;
+            font-size: 13px;
+        }
+
+        .multi-select-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .multi-select-actions button {
+            padding: 8px 14px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            border: 2px solid #3A3A52;
+            background: #3A3A52;
+            color: #FFFFFF;
+        }
+
+        .multi-select-actions button.jang {
+            border-color: #5a4a3a;
+            color: #ffc9a3;
+        }
+
+        .multi-select-actions button.jang:hover {
+            background: #5a4a3a;
+            color: #fff;
+        }
+
+        .multi-select-actions button.kim {
+            border-color: #4a3a5a;
+            color: #d7c3f0;
+        }
+
+        .multi-select-actions button.kim:hover {
+            background: #4a3a5a;
+            color: #fff;
+        }
+
+        .multi-select-actions button.clear {
+            border-color: #e34948;
+            color: #e34948;
+        }
+
+        .multi-select-actions button.clear:hover {
+            background: #4a3a3a;
+        }
+
+        .pdf-page {
+            display: none;
+        }
+
+        .pdf-page.active {
+            display: block;
+            page-break-after: always;
+            padding: 40px;
+            background: white;
+            margin-bottom: 20px;
+            color: #000;
+        }
+
+        .pdf-header-title {
+            background: #000;
+            color: #fff;
+            text-align: center;
+            font-weight: bold;
+            font-size: 28px;
+            padding: 22px 0;
+            margin-bottom: 0;
+        }
+
+        .pdf-supervision-box {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 0;
+            border: 3px solid #000;
+            margin-bottom: 20px;
+            background: white;
+        }
+
+        .pdf-supervision-label {
+            background: #000;
+            color: white;
+            padding: 10px 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #999;
+        }
+
+        .pdf-supervision-logo {
+            font-family: Impact, 'Arial Narrow Bold', 'Haettenschweiler', 'Franklin Gothic Heavy', sans-serif;
+            font-weight: 900;
+            font-size: 26px;
+            letter-spacing: -1.5px;
+            color: white;
+            white-space: nowrap;
+            line-height: 1;
+        }
+
+        .pdf-supervision-content {
+            border-right: 1px solid #999;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .pdf-supervision-item {
+            padding: 15px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #000;
+            border-bottom: 1px solid #999;
+        }
+
+        .pdf-supervision-item.full {
+            grid-column: 1 / -1;
+        }
+
+        .pdf-supervision-item.no-border {
+            border-bottom: none;
+        }
+
+        .pdf-supervision-item.border-r {
+            border-right: 1px solid #999;
+        }
+
+        .pdf-supervision-sign {
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+        }
+
+        .pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            color: #000;
+            margin-bottom: 20px;
+            border: 3px solid #000;
+        }
+
+        .pdf-table thead {
+            background: #ccc;
+        }
+
+        .pdf-table th {
+            border: 1px solid #999;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            background: #ccc;
+            color: #000;
+            height: 35px;
+        }
+
+        .pdf-table td {
+            border: 1px dotted #999;
+            padding: 8px;
+            text-align: center;
+            height: 25px;
+            color: #000;
+        }
+
+        .pdf-table .total-row td {
+            background: #ccc;
+            font-weight: bold;
+            border: 1px solid #999;
+        }
+
+        .pdf-calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            background: #999;
+            padding: 2px;
+            margin-bottom: 20px;
+            border: 3px solid #000;
+        }
+
+        .pdf-cal-header {
+            background: #ccc;
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border: 1px solid #999;
+            height: 40px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+        }
+
+        .pdf-cal-day {
+            background: white;
+            padding: 10px;
+            min-height: 110px;
+            border: 1px solid #999;
+            font-size: 13px;
+            color: #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-cal-number {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #d61e5c;
+            font-size: 17px;
+        }
+
+        .pdf-cal-entries {
+            font-size: 13px;
+            font-weight: bold;
+            line-height: 1.5;
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: #000;
+            }
+            .container {
+                background: transparent;
+                color: #000;
+                box-shadow: none;
+                padding: 0;
+            }
+            .controls,
+            .calendar-header,
+            .calendar-grid,
+            .info-box,
+            .multi-select-bar,
+            h1 {
+                display: none;
+            }
+            .pdf-page.active {
+                margin-bottom: 0;
+                padding: 0;
+            }
+        }
+    </style>
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="../icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<script src="hub.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>VJ 근무일지</h1>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="window.print()">PDF 저장 (Cmd+P)</button>
+            <button class="btn btn-secondary" onclick="exportBackup()">백업 저장 (JSON)</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('backupFile').click()">백업 불러오기</button>
+            <input type="file" id="backupFile" accept=".json,application/json" hidden onchange="importBackup(this)">
+            <button class="btn btn-danger" onclick="clearAllData()">데이터 초기화</button>
+        </div>
+
+        <div class="calendar-header">
+            <h2 id="monthDisplay"></h2>
+            <div class="calendar-nav">
+                <button onclick="prevMonth()">◀ 이전</button>
+                <button onclick="nextMonth()">다음 ▶</button>
+            </div>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid"></div>
+
+        <div id="multiSelectBar" class="multi-select-bar" style="display: none;"></div>
+
+        <div class="info-box">
+            💡 요일별 기본 설정: 목/일 = 4시간(23:00-03:00), 금/토 = 8시간(23:00-07:00)<br/>
+            💡 Shift + 클릭으로 여러 날짜를 동시에 선택해서 한 번에 등록할 수 있습니다.
+        </div>
+    </div>
+
+    <div class="modal" id="modal" onclick="if (event.target === this) closeModal();">
+        <div class="modal-content">
+            <h3 id="modalTitle"></h3>
+            <div class="modal-info">
+                <div class="modal-info-item">
+                    <span class="modal-info-label">날짜:</span>
+                    <span class="modal-info-value" id="modalDate"></span>
+                </div>
+                <div class="modal-info-item">
+                    <span class="modal-info-label">시간:</span>
+                    <span class="modal-info-value" id="modalTime"></span>
+                    <button class="btn-edit-time" onclick="toggleTimeEdit()">근무시간 변경</button>
+                </div>
+            </div>
+            <div id="timeEditPanel" class="time-edit-panel" style="display: none;">
+                <div class="time-edit-row">
+                    <label>시작</label>
+                    <input type="time" id="editStartTime">
+                    <label>종료</label>
+                    <input type="time" id="editEndTime">
+                </div>
+                <div class="time-edit-row">
+                    <label>근무시간(시간)</label>
+                    <input type="number" id="editHours" min="0" step="0.5" style="width: 70px;">
+                </div>
+                <div class="time-edit-buttons">
+                    <button class="btn-apply-time" onclick="applyTimeEdit()">적용</button>
+                    <button class="btn-cancel-time" onclick="cancelTimeEdit()">취소</button>
+                </div>
+            </div>
+            <div id="modalEntries"></div>
+
+            <div class="modal-info" style="background: #2a4a7a; border: 1px solid #4a6aaa;">
+                <span class="modal-info-label" style="color: #6b9eff;">근무자 선택</span>
+            </div>
+            <div class="person-options">
+                <button class="person-btn jang" onclick="selectPerson('장민규')">장민규</button>
+                <button class="person-btn kim" onclick="selectPerson('김준호')">김준호</button>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal()">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pdfOutput"></div>
+
+    <script>
+
+        let currentMonth = new Date();
+        let entries = [];
+        let selectedDate = null;
+        let selectedHours = null;
+        let selectedTime = null;
+        let editingEntryIndex = null;
+        let multiSelectedDates = new Set();
+
+        const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+        // 날짜는 항상 'YYYY.MM.DD'(0 채움) → 문자열 비교로 정렬 (Safari는 new Date('2026.11.05')가 Invalid Date)
+        function byDate(a, b) {
+            return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.time || '').localeCompare(b.time || '');
+        }
+
+        function getWeekdayLabel(dateStr) {
+            const [y, m, d] = dateStr.split('.').map(Number);
+            const date = new Date(y, m - 1, d);
+            return dayNames[date.getDay()];
+        }
+
+        function init() {
+            loadFromStorage();
+            renderCalendar();
+            renderPDF();
+        }
+
+        function loadFromStorage() {
+            const saved = localStorage.getItem('vjWorkLogSimple');
+            if (saved) {
+                entries = JSON.parse(saved);
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('vjWorkLogSimple', JSON.stringify(entries));
+        }
+
+        /* ---------- 백업 (I-04): localStorage는 브라우저를 바꾸면 사라지므로 JSON 파일로 저장/불러오기 ---------- */
+        function exportBackup() {
+            const data = { app: 'vj-worklog', version: 1, exportedAt: new Date().toISOString(), entries };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const t = new Date();
+            const stamp = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `VJ근무일지_백업_${stamp}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }
+
+        const entryKey = e => `${e.name}|${e.date}|${e.time}`;
+
+        function validEntry(e) {
+            return e && typeof e.name === 'string' && e.name &&
+                typeof e.date === 'string' && /^\d{4}\.\d{2}\.\d{2}$/.test(e.date) &&
+                typeof e.time === 'string' && typeof e.hours === 'number' && isFinite(e.hours);
+        }
+
+        function importBackup(input) {
+            const file = input.files && input.files[0];
+            input.value = '';
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                let list;
+                try {
+                    const data = JSON.parse(reader.result);
+                    list = Array.isArray(data) ? data : data.entries;
+                    if (!Array.isArray(list)) throw new Error();
+                } catch (err) {
+                    alert('근무일지 백업 파일(JSON)이 아니에요.');
+                    return;
+                }
+                const valid = list.filter(validEntry).map(e => ({ name: e.name, club: e.club || '에이스', hours: e.hours, time: e.time, date: e.date }));
+                const have = new Set(entries.map(entryKey));
+                const add = valid.filter(e => !have.has(entryKey(e)) && have.add(entryKey(e)));
+                const skipped = list.length - add.length;
+                if (!add.length) {
+                    alert(`새로 추가할 기록이 없어요. (파일 ${list.length}건, 전부 이미 있거나 형식이 맞지 않음)`);
+                    return;
+                }
+                if (!confirm(`백업에서 ${add.length}건을 추가할까요?\n(이미 있는 기록·형식 오류 ${skipped}건은 건너뜀, 기존 기록은 그대로 유지)`)) return;
+                entries = entries.concat(add);
+                saveToStorage();
+                renderCalendar();
+                renderPDF();
+                alert(`${add.length}건을 추가했어요.`);
+            };
+            reader.readAsText(file);
+        }
+
+        function getTimeSettings(dayOfWeek) {
+            if (dayOfWeek === 4 || dayOfWeek === 0) {
+                return { hours: 4, time: '23:00-03:00' };
+            } else if (dayOfWeek === 5 || dayOfWeek === 6) {
+                return { hours: 8, time: '23:00-07:00' };
+            }
+            return null;
+        }
+
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            document.getElementById('monthDisplay').textContent = `${year}년 ${monthNames[month]}`;
+
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            dayNames.forEach((day, idx) => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                if (idx === 0 || idx === 6) header.classList.add('weekend');
+                header.textContent = day;
+                grid.appendChild(header);
+            });
+
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'calendar-day empty';
+                grid.appendChild(empty);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayEl = document.createElement('div');
+                const d = new Date(year, month, day);
+                const dayOfWeek = d.getDay();
+                const settings = getTimeSettings(dayOfWeek);
+
+                dayEl.className = 'calendar-day';
+                dayEl.dataset.day = day;
+                dayEl.dataset.dayOfWeek = dayOfWeek;
+
+                const dayNum = document.createElement('div');
+                dayNum.className = 'day-number';
+                if (dayOfWeek === 0) dayNum.classList.add('sunday');
+                if (dayOfWeek === 6) dayNum.classList.add('saturday');
+                dayNum.textContent = day;
+
+                const entries_container = document.createElement('div');
+                entries_container.className = 'day-entries';
+
+                const dayStr = `${year}.${String(month + 1).padStart(2, '0')}.${String(day).padStart(2, '0')}`;
+                const dayEntries = entries.filter(e => e.date === dayStr);
+
+                if (dayEntries.length > 0) {
+                    const firstName = dayEntries[0].name;
+                    if (firstName === '장민규') {
+                        dayEl.classList.add('jang-min-gyu');
+                    } else if (firstName === '김준호') {
+                        dayEl.classList.add('kim-jun-ho');
+                    }
+                }
+
+                if (multiSelectedDates.has(dayStr)) {
+                    dayEl.classList.add('multi-selected');
+                }
+
+                dayEntries.forEach(entry => {
+                    const badge = document.createElement('div');
+                    badge.className = 'entry-badge';
+                    badge.innerHTML = `${entry.name}<br/>${entry.time}`;
+                    entries_container.appendChild(badge);
+                });
+
+                dayEl.appendChild(dayNum);
+                dayEl.appendChild(entries_container);
+
+                if (settings) {
+                    dayEl.style.cursor = 'pointer';
+                    dayEl.onclick = (e) => handleDayClick(e, day, dayOfWeek, settings, dayStr);
+                } else {
+                    dayEl.style.opacity = '0.6';
+                    dayEl.style.cursor = 'default';
+                }
+
+                grid.appendChild(dayEl);
+            }
+        }
+
+        function handleDayClick(e, day, dayOfWeek, settings, dateStr) {
+            if (e.shiftKey) {
+                if (multiSelectedDates.has(dateStr)) {
+                    multiSelectedDates.delete(dateStr);
+                } else {
+                    multiSelectedDates.add(dateStr);
+                }
+                renderCalendar();
+                renderMultiSelectBar();
+                return;
+            }
+            openModal(day, dayOfWeek, settings);
+        }
+
+        function renderMultiSelectBar() {
+            const bar = document.getElementById('multiSelectBar');
+            const count = multiSelectedDates.size;
+
+            if (count === 0) {
+                bar.style.display = 'none';
+                bar.innerHTML = '';
+                return;
+            }
+
+            bar.style.display = 'flex';
+            bar.innerHTML = `
+                <div class="multi-select-count">${count}개 날짜 선택됨</div>
+                <div class="multi-select-actions">
+                    <button class="jang" onclick="assignMultiSelect('장민규')">장민규로 일괄 등록</button>
+                    <button class="kim" onclick="assignMultiSelect('김준호')">김준호로 일괄 등록</button>
+                    <button class="clear" onclick="clearMultiSelect()">선택 해제</button>
+                </div>
+            `;
+        }
+
+        function assignMultiSelect(name) {
+            multiSelectedDates.forEach(dateStr => {
+                const [y, m, d] = dateStr.split('.').map(Number);
+                const date = new Date(y, m - 1, d);
+                const dayOfWeek = date.getDay();
+                const settings = getTimeSettings(dayOfWeek);
+                if (!settings) return;
+
+                entries.push({
+                    name: name,
+                    club: '에이스',
+                    hours: settings.hours,
+                    time: settings.time,
+                    date: dateStr
+                });
+            });
+
+            saveToStorage();
+            multiSelectedDates.clear();
+            renderCalendar();
+            renderPDF();
+            renderMultiSelectBar();
+        }
+
+        function clearMultiSelect() {
+            multiSelectedDates.clear();
+            renderCalendar();
+            renderMultiSelectBar();
+        }
+
+        function openModal(day, dayOfWeek, settings) {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            const d = new Date(year, month, day);
+            const dayName = dayNames[dayOfWeek];
+
+            selectedDate = `${year}.${String(month + 1).padStart(2, '0')}.${String(day).padStart(2, '0')}`;
+            selectedHours = settings.hours;
+            selectedTime = settings.time;
+            editingEntryIndex = null;
+
+            document.getElementById('modalTitle').textContent = `${dayName}요일, ${month + 1}월 ${day}일`;
+            document.getElementById('modalDate').textContent = selectedDate;
+            document.getElementById('modalTime').textContent = selectedTime;
+            document.getElementById('timeEditPanel').style.display = 'none';
+            renderModalEntries();
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function toggleTimeEdit() {
+            const panel = document.getElementById('timeEditPanel');
+            const isHidden = panel.style.display === 'none' || !panel.style.display;
+            if (isHidden) {
+                const [start, end] = selectedTime.split('-');
+                document.getElementById('editStartTime').value = start;
+                document.getElementById('editEndTime').value = end;
+                document.getElementById('editHours').value = selectedHours;
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function applyTimeEdit() {
+            const start = document.getElementById('editStartTime').value;
+            const end = document.getElementById('editEndTime').value;
+            const hours = parseFloat(document.getElementById('editHours').value);
+
+            if (!start || !end || isNaN(hours)) {
+                alert('시작/종료 시간과 근무시간을 모두 입력해주세요.');
+                return;
+            }
+
+            selectedTime = `${start}-${end}`;
+            selectedHours = hours;
+            document.getElementById('modalTime').textContent = selectedTime;
+            document.getElementById('timeEditPanel').style.display = 'none';
+        }
+
+        function cancelTimeEdit() {
+            document.getElementById('timeEditPanel').style.display = 'none';
+        }
+
+        function renderModalEntries() {
+            const container = document.getElementById('modalEntries');
+            const dayEntries = entries.filter(e => e.date === selectedDate);
+
+            if (dayEntries.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="modal-entries">
+                    <div class="modal-entries-label">등록된 근무자 (수정/삭제 가능)</div>
+                    ${dayEntries.map(entry => {
+                        const idx = entries.indexOf(entry);
+
+                        if (editingEntryIndex === idx) {
+                            const [start, end] = entry.time.split('-');
+                            return `
+                                <div class="entry-row entry-row-editing">
+                                    <div class="time-edit-row">
+                                        <label>시작</label>
+                                        <input type="time" id="editEntryStart" value="${start}">
+                                        <label>종료</label>
+                                        <input type="time" id="editEntryEnd" value="${end}">
+                                    </div>
+                                    <div class="time-edit-row">
+                                        <label>근무시간(시간)</label>
+                                        <input type="number" id="editEntryHours" value="${entry.hours}" min="0" step="0.5" style="width: 70px;">
+                                    </div>
+                                    <div class="time-edit-buttons">
+                                        <button class="btn-apply-time" onclick="saveEntryEdit(${idx})">저장</button>
+                                        <button class="btn-cancel-time" onclick="cancelEntryEdit()">취소</button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        return `
+                            <div class="entry-row">
+                                <span class="entry-row-info">${entry.name} · ${entry.time} (${entry.hours}시간)</span>
+                                <div class="entry-row-actions">
+                                    <button class="btn-edit-entry" onclick="startEntryEdit(${idx})">수정</button>
+                                    <button class="btn-delete-entry" onclick="deleteEntry(${idx})">삭제</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function startEntryEdit(idx) {
+            editingEntryIndex = idx;
+            renderModalEntries();
+        }
+
+        function cancelEntryEdit() {
+            editingEntryIndex = null;
+            renderModalEntries();
+        }
+
+        function saveEntryEdit(idx) {
+            const start = document.getElementById('editEntryStart').value;
+            const end = document.getElementById('editEntryEnd').value;
+            const hours = parseFloat(document.getElementById('editEntryHours').value);
+
+            if (!start || !end || isNaN(hours)) {
+                alert('시작/종료 시간과 근무시간을 모두 입력해주세요.');
+                return;
+            }
+
+            entries[idx].time = `${start}-${end}`;
+            entries[idx].hours = hours;
+            saveToStorage();
+            editingEntryIndex = null;
+            renderCalendar();
+            renderPDF();
+            renderModalEntries();
+        }
+
+        function deleteEntry(idx) {
+            entries.splice(idx, 1);
+            saveToStorage();
+            renderCalendar();
+            renderPDF();
+            renderModalEntries();
+        }
+
+        function selectPerson(name) {
+            if (selectedDate && selectedHours != null && selectedTime) {
+                entries.push({
+                    name: name,
+                    club: '에이스',
+                    hours: selectedHours,
+                    time: selectedTime,
+                    date: selectedDate
+                });
+                saveToStorage();
+                renderCalendar();
+                renderPDF();
+                renderModalEntries();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.getElementById('timeEditPanel').style.display = 'none';
+            selectedDate = null;
+            selectedHours = null;
+            selectedTime = null;
+            editingEntryIndex = null;
+        }
+
+        function prevMonth() {
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
+            multiSelectedDates.clear();
+            renderCalendar();
+            renderPDF();
+            renderMultiSelectBar();
+        }
+
+        function nextMonth() {
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+            multiSelectedDates.clear();
+            renderCalendar();
+            renderPDF();
+            renderMultiSelectBar();
+        }
+
+        function clearAllData() {
+            if (confirm('모든 데이터를 삭제하시겠습니까?')) {
+                entries = [];
+                saveToStorage();
+                renderCalendar();
+                renderPDF();
+            }
+        }
+
+        function renderPDF() {
+            const output = document.getElementById('pdfOutput');
+            output.innerHTML = '';
+
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth() + 1;
+            const yearMonth = `${year}.${String(month).padStart(2, '0')}`;
+            const monthEntries = entries.filter(e => e.date.startsWith(yearMonth));
+
+            if (monthEntries.length === 0) return;
+
+            output.innerHTML += generateMainPage(monthEntries, year, month);
+
+            const names = [...new Set(monthEntries.map(e => e.name))];
+            names.forEach(name => {
+                output.innerHTML += generatePersonalPage(monthEntries.filter(e => e.name === name), name, year, month);
+            });
+
+            output.innerHTML += generateCalendarPage(monthEntries, year, month);
+        }
+
+        function generateMainPage(monthEntries, year, month) {
+            const sorted = [...monthEntries].sort(byDate);
+            const total = sorted.reduce((sum, e) => sum + e.hours, 0);
+
+            return `
+                <div class="pdf-page active">
+                    <div class="pdf-header-title">${String(month).padStart(2, '0')}월 VJ근무일지</div>
+                    <div class="pdf-supervision-box">
+                        <div class="pdf-supervision-label">
+                            <div class="pdf-supervision-logo">SUPERVISION</div>
+                        </div>
+                        <div class="pdf-supervision-content">
+                            <div class="pdf-supervision-item full">SUPERVISION</div>
+                            <div class="pdf-supervision-item full no-border">DATE ${year}.${String(month).padStart(2, '0')}.${String(new Date(year, month, 0).getDate()).padStart(2, '0')}</div>
+                        </div>
+                        <div class="pdf-supervision-sign">(인)</div>
+                    </div>
+
+                    <table class="pdf-table">
+                        <thead>
+                            <tr>
+                                <th>이름</th>
+                                <th>클럽</th>
+                                <th>근무시간</th>
+                                <th>시간대</th>
+                                <th>날짜</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sorted.map(e => `
+                                <tr style="background: ${e.name === '장민규' ? '#FFE0B2' : '#E1BEE7'}">
+                                    <td>${e.name}</td>
+                                    <td>${e.club}</td>
+                                    <td>${e.hours}</td>
+                                    <td>${e.time}</td>
+                                    <td>${e.date} (${getWeekdayLabel(e.date)})</td>
+                                </tr>
+                            `).join('')}
+                            <tr class="total-row">
+                                <td colspan="2">총계</td>
+                                <td>${total}</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function generatePersonalPage(personEntries, name, year, month) {
+            const sorted = [...personEntries].sort(byDate);
+            const total = sorted.reduce((sum, e) => sum + e.hours, 0);
+            const bgColor = name === '장민규' ? '#FFE0B2' : '#E1BEE7';
+
+            return `
+                <div class="pdf-page active">
+                    <div class="pdf-header-title">${String(month).padStart(2, '0')}월 VJ근무일지</div>
+                    <div class="pdf-supervision-box">
+                        <div class="pdf-supervision-label">
+                            <div class="pdf-supervision-logo">SUPERVISION</div>
+                        </div>
+                        <div class="pdf-supervision-content">
+                            <div class="pdf-supervision-item border-r">SUPERVISION</div>
+                            <div class="pdf-supervision-item">${name}</div>
+                            <div class="pdf-supervision-item full no-border">DATE ${year}.${String(month).padStart(2, '0')}.${String(new Date(year, month, 0).getDate()).padStart(2, '0')}</div>
+                        </div>
+                        <div class="pdf-supervision-sign">(인)</div>
+                    </div>
+
+                    <table class="pdf-table">
+                        <thead>
+                            <tr>
+                                <th>이름</th>
+                                <th>클럽</th>
+                                <th>근무시간</th>
+                                <th>시간대</th>
+                                <th>날짜</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sorted.map(e => `
+                                <tr style="background: ${bgColor}">
+                                    <td>${e.name}</td>
+                                    <td>${e.club}</td>
+                                    <td>${e.hours}</td>
+                                    <td>${e.time}</td>
+                                    <td>${e.date} (${getWeekdayLabel(e.date)})</td>
+                                </tr>
+                            `).join('')}
+                            <tr class="total-row">
+                                <td colspan="2">총계</td>
+                                <td>${total}</td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function generateCalendarPage(monthEntries, year, month) {
+            const firstDay = new Date(year, month - 1, 1).getDay();
+            const daysInMonth = new Date(year, month, 0).getDate();
+
+            let html = `
+                <div class="pdf-page active">
+                    <div class="pdf-header-title">${String(month).padStart(2, '0')}월 VJ근무일지</div>
+                    <div class="pdf-supervision-box">
+                        <div class="pdf-supervision-label">
+                            <div class="pdf-supervision-logo">SUPERVISION</div>
+                        </div>
+                        <div class="pdf-supervision-content">
+                            <div class="pdf-supervision-item border-r">SUPERVISION</div>
+                            <div class="pdf-supervision-item">특이사항</div>
+                            <div class="pdf-supervision-item full no-border">DATE ${year}.${String(month).padStart(2, '0')}.${String(new Date(year, month, 0).getDate()).padStart(2, '0')}</div>
+                        </div>
+                        <div class="pdf-supervision-sign"></div>
+                    </div>
+
+                    <div class="pdf-calendar">
+            `;
+
+            dayNames.forEach(day => {
+                html += `<div class="pdf-cal-header">${day}</div>`;
+            });
+
+            for (let i = 0; i < firstDay; i++) {
+                html += `<div class="pdf-cal-day" style="background: #f5f5f5;"></div>`;
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`;
+                const dayEntries = monthEntries.filter(e => e.date === dateStr);
+                const dayBg = dayEntries.length > 0
+                    ? (dayEntries[0].name === '장민규' ? '#FFE0B2' : '#E1BEE7')
+                    : 'white';
+
+                html += `
+                    <div class="pdf-cal-day" style="background: ${dayBg};">
+                        <div class="pdf-cal-number">${day}</div>
+                        <div class="pdf-cal-entries">${dayEntries.map(e => `${e.name}<br/>${e.time}`).join('<br/>')}</div>
+                    </div>
+                `;
+            }
+
+            html += `</div></div>`;
+            return html;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

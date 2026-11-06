@@ -14,6 +14,7 @@ import { loadAll, requestPersist } from './db';
 import { isUnlocked } from './lock';
 import { loadGuideFonts } from './render';
 import { restoreSyncMeta, needsBackup } from './sync';
+import { autoSync } from './gdrive';
 import { createSample } from './sample';
 import { Icon, CalcBar } from './ui/common';
 import { Lock } from './ui/Lock';
@@ -132,6 +133,10 @@ async function boot() {
   }
   set({ ready: true });
   loadGuideFonts().then(() => set({ fontsReady: state.fontsReady + 1 }));
+  // 구글 드라이브: 로그인이 살아 있으면 열 때·다시 볼 때·온라인 될 때 조용히 동기화
+  autoSync();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) autoSync(); });
+  addEventListener('online', () => autoSync());
 }
 
 render(<App />, document.getElementById('app')!);

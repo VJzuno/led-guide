@@ -8,6 +8,7 @@ import { SCHEMA_VERSION, type BackupFile, type Project, type Led } from './types
 import { mergeBackup, loadAll, setMeta, getMeta } from './db';
 import { state, flush, emit } from './store';
 import { isIOS } from './export';
+import { collectTools, mergeTools, toolsChangedSince } from './tools';
 
 const LS_LAST = 'zuno.backup.last';
 const LS_LOAD = 'zuno.backup.lastLoad';
@@ -26,15 +27,17 @@ export async function restoreSyncMeta() {
 }
 const saveSyncMeta = () => setMeta('sync', { last: lastBackupAt(), load: lastLoadAt() });
 
-/** 마지막 저장 뒤로 바뀐 프로젝트·LED 수 */
+/** 마지막 저장(또는 드라이브 동기화) 뒤로 바뀐 프로젝트·LED·도구 수 */
 export function changedSinceBackup() {
-  const t = lastBackupAt();
+  const t = Math.max(lastBackupAt(), lsNum(LS_DRIVE));
   const n = (xs: (Project | Led)[]) => xs.filter((x) => (x.updatedAt || 0) > t).length;
-  return n(state.projects) + n(state.leds);
+  return n(state.projects) + n(state.leds) + toolsChangedSince(t);
 }
+/** 구글 드라이브 마지막 동기화 시각 (gdrive.ts 가 기록) */
+export const LS_DRIVE = 'zuno.drive.last';
 /** 백업을 권할 상태인가: 바뀐 게 있고, 한 번도 안 했거나 6시간 넘게 지남 */
 export function needsBackup() {
-  const last = lastBackupAt();
+  const last = Math.max(lastBackupAt(), lsNum(LS_DRIVE));
   return changedSinceBackup() > 0 && (!last || Date.now() - last > 6 * 3600_000);
 }
 
@@ -44,13 +47,29 @@ const stamp = () => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
 };
 
+/** 이 기기의 전체 데이터 (LED 프로젝트 + 도구) */
+export async function buildBackup(): Promise<BackupFile> {
+  await flush();
+  return {
+    app: 'zuno-led-guide-maker', schemaVersion: SCHEMA_VERSION, exportedAt: Date.now(),
+    settings: state.settings, projects: state.projects, leds: state.leds, tools: collectTools(),
+  };
+}
+
+/** 받은 백업을 이 기기에 합침: LED 항목별 최신 우선 + 도구 데이터 */
+export async function applyBackup(b: BackupFile) {
+  await flush();
+  const r = await mergeBackup(b);
+  const tools = mergeTools(b.tools);
+  const d = await loadAll();
+  Object.assign(state, { projects: d.projects, leds: d.leds });
+  emit();
+  return { ...r, tools };
+}
+
 /** iCloud에 저장. 저장 창을 닫으면(취소) false */
 export async function saveToICloud(): Promise<boolean> {
-  await flush();
-  const b: BackupFile = {
-    app: 'zuno-led-guide-maker', schemaVersion: SCHEMA_VERSION, exportedAt: Date.now(),
-    settings: state.settings, projects: state.projects, leds: state.leds,
-  };
+  const b = await buildBackup();
   const name = `LGM-backup_${stamp()}_${deviceName()}.json`;
   const blob = new Blob([JSON.stringify(b)], { type: 'application/json' });
   const file = new File([blob], name, { type: 'application/json' });
@@ -70,15 +89,12 @@ export async function saveToICloud(): Promise<boolean> {
   return true;
 }
 
-export interface MergeResult { added: number; updated: number; kept: number; from: string; exportedAt: number }
+export interface MergeResult { added: number; updated: number; kept: number; tools: string[]; from: string; exportedAt: number }
 
 /** iCloud에서 불러오기: 최신 것끼리 합치기 */
 export async function loadFromFile(f: File): Promise<MergeResult> {
   const b = JSON.parse(await f.text()) as BackupFile;
-  await flush();
-  const r = await mergeBackup(b);
-  const d = await loadAll();
-  Object.assign(state, { projects: d.projects, leds: d.leds });
+  const r = await applyBackup(b);
   lsSet(LS_LOAD, Date.now());
   await saveSyncMeta();
   emit();

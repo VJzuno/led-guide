@@ -27,6 +27,8 @@ jobs:
       - run: npm run build
         env:
           VITE_PASS_HASH: ${{ secrets.VITE_PASS_HASH }}
+          # 구글 드라이브 동기화 OAuth 클라이언트 ID (공개값, 없으면 앱 설정에서 입력)
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
           BASE_PATH: /${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         with:

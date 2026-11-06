@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="../icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<script src="hub.js"></script>
+<title>Border Maker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: LED canvas monitor on the left with draggable windows, control rack on the right; stacks on phone. */
+:root {
+  /* ZUNO 팔레트: 블랙 배경 + 포인트 #5613C8 */
+  --bg: #000000;
+  --panel: #0E0B1D;
+  --line: #3A3A52;
+  --fg: #FFFFFF;
+  --muted: #8B7CC7;
+  --soft: #C9C2E3;
+  --accent: #5613C8;
+  --accent-ink: #FFFFFF;
+  --accent-text: #8B7CC7;
+  --well: #050409;
+  --chk-a: #1B1530;
+  --chk-b: #0E0B1D;
+  --guide: #8B7CC7;
+  --guide-rgb: 139, 124, 199;
+  --block: #FF4D6D;
+  --block-rgb: 255, 77, 109;
+  --snap: #C9C2E3;
+  --font-ui: "IBM Plex Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 14px;
+  padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 16px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+h1 span { color: var(--accent-text); font-family: var(--font-num); font-weight: 600; font-size: 13px; margin-left: 8px; letter-spacing: 0.04em; }
+.readout { font-family: var(--font-num); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.readout b { color: var(--fg); font-weight: 600; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 960px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.monitor { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.stage { background: var(--well); border-radius: 6px; padding: 16px; display: flex; align-items: center; justify-content: center; min-height: 240px; }
+.screen { position: relative; max-width: 100%; flex: none;
+  background-color: var(--chk-b);
+  background-image: linear-gradient(45deg, var(--chk-a) 25%, transparent 25%), linear-gradient(-45deg, var(--chk-a) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--chk-a) 75%), linear-gradient(-45deg, transparent 75%, var(--chk-a) 75%);
+  background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  outline: 1px solid var(--line);
+}
+.screen.feed { background-image: linear-gradient(135deg, #2A1E4D, #5613C8 45%, #C9C2E3); }
+.screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.screen .guideimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; opacity: .5; }
+.safe { position: absolute; inset: 5%; border: 1px dashed rgba(var(--guide-rgb),.9); pointer-events: none; }
+.safe::after { content: ""; position: absolute; inset: 5.55%; border: 1px dashed rgba(var(--guide-rgb),.55); }
+.layer { position: absolute; inset: 0; touch-action: none; }
+.box { position: absolute; outline: 1px solid rgba(var(--guide-rgb),.75); cursor: move; }
+.box.block { outline-color: rgba(var(--block-rgb),.8); background: repeating-linear-gradient(45deg, rgba(var(--block-rgb),.10) 0 6px, transparent 6px 12px); }
+.box.block.sel { outline: 2px solid var(--block); }
+.box.block .tag { background: var(--block); }
+.box.block:not(.sel) .tag { background: rgba(var(--block-rgb),.75); }
+.box.sel { outline: 2px solid var(--guide); z-index: 2; }
+.box .hole { position: absolute; border: 1px dashed rgba(var(--guide-rgb),.7); pointer-events: none; }
+.box .tag { position: absolute; left: 0; top: 0; transform: translateY(-100%); background: var(--guide); color: #0E0B1D; font: 600 11px/1 var(--font-num); padding: 3px 5px; white-space: nowrap; pointer-events: none; }
+.box:not(.sel) .tag { background: rgba(var(--guide-rgb),.75); }
+.handle { position: absolute; width: 12px; height: 12px; background: var(--guide); border: 2px solid #0E0B1D; transform: translate(-50%, -50%); }
+.handle::before { content: ""; position: absolute; inset: -8px; }
+.snapline { position: absolute; background: var(--snap); pointer-events: none; z-index: 3; }
+.viewbar { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); }
+.viewbar .tip { margin-left: auto; font-size: 12px; }
+
+.rack { display: grid; gap: 12px; }
+.group { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 12px; }
+.group h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+label.f { display: grid; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
+input[type=number], select, input[type=color] {
+  width: 100%; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 7px 8px; font-family: var(--font-num); font-size: 13px; font-variant-numeric: tabular-nums;
+}
+input[type=color] { padding: 2px; height: 34px; }
+select { font-family: var(--font-ui); }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+.slider { display: grid; grid-template-columns: 1fr 84px; gap: 10px; align-items: center; }
+input[type=range] { width: 100%; accent-color: var(--accent-text); }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; font-family: var(--font-num); font-size: 12px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 6px; font: inherit; font-size: 12px; cursor: pointer; }
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.wide { grid-column: 1 / -1; }
+.check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; font-size: 13px; color: var(--fg); }
+.check input { accent-color: var(--accent); }
+[hidden] { display: none !important; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { background: var(--bg); color: var(--muted); border: 0; padding: 8px; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.wins { display: grid; gap: 6px; }
+.winrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; font: inherit; font-size: 13px; color: var(--fg); text-align: left; width: 100%; }
+.winrow .kind { font-style: normal; font-size: 11px; color: var(--block); margin-left: 4px; }
+.winrow small { font-family: var(--font-num); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.winrow[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.export { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 8px; padding: 12px; font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; width: 100%; }
+.export:disabled { opacity: .5; cursor: progress; }
+.note { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5; }
+.status { font-size: 12px; color: var(--accent-text); min-height: 1.2em; margin: 0; }
+.hint-img { max-width: 100%; border: 1px solid var(--line); }
+.file { font-size: 12px; color: var(--muted); max-width: 100%; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0}</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Border Maker<span>ZUNO</span></h1>
+    <div class="readout" id="readout"></div>
+  </header>
+
+  <div class="main">
+    <section class="monitor">
+      <div class="stage" id="stage">
+        <div class="screen" id="screen">
+          <canvas id="preview"></canvas>
+          <img class="guideimg" id="guideImg" alt="" hidden>
+          <div class="safe" id="safe" hidden></div>
+          <div class="layer" id="layer"></div>
+        </div>
+      </div>
+      <div class="viewbar">
+        <label class="check"><input type="checkbox" id="feedBg"> 그라디언트로 미리보기</label>
+        <label class="check"><input type="checkbox" id="safeGuide"> 세이프 가이드</label>
+        <label class="check"><input type="checkbox" id="snap" checked> 스냅</label>
+        <label class="check"><input type="checkbox" id="showBoxes" checked> 창 테두리 표시</label>
+        <span class="tip">드래그로 이동 · 핸들로 크기 · Shift 비율 고정 · 방향키 1px (Shift 10px)</span>
+      </div>
+    </section>
+
+    <div class="rack">
+      <section class="group">
+        <h2>LED 캔버스</h2>
+        <div class="presets" id="presets">
+          <button class="chip" data-w="1920" data-h="1080">1920×1080</button>
+          <button class="chip" data-w="3840" data-h="2160">3840×2160</button>
+          <button class="chip" data-w="3840" data-h="1080">3840×1080</button>
+          <button class="chip" data-w="1280" data-h="720">1280×720</button>
+          <button class="chip" data-w="1080" data-h="1920">1080×1920</button>
+        </div>
+        <div class="row">
+          <label class="f">가로 (px)<input type="number" id="cw" min="16" max="16384" step="1"></label>
+          <label class="f">세로 (px)<input type="number" id="ch" min="16" max="16384" step="1"></label>
+        </div>
+        <label class="f">픽셀맵 가이드 이미지 (저장엔 안 들어감)
+          <input type="file" id="guideFile" class="file" accept="image/*">
+        </label>
+        <div class="slider" id="guideRow" hidden>
+          <input type="range" id="guideOp" min="0" max="100" value="50" aria-label="가이드 불투명도">
+          <button class="btn" id="guideClear">가이드 제거</button>
+        </div>
+      </section>
+
+      <section class="group">
+        <h2>창 목록 <span id="winCount"></span></h2>
+        <div class="wins" id="winList"></div>
+        <div class="row3">
+          <button class="btn" id="addWin">+ 창 추가</button>
+          <button class="btn" id="dupWin">복제</button>
+          <button class="btn" id="delWin">삭제</button>
+        </div>
+        <div class="row">
+          <button class="btn" id="bandV">+ 세로 띠 (가리기)</button>
+          <button class="btn" id="bandH">+ 가로 띠 (가리기)</button>
+        </div>
+        <p class="note">보이기 창이 하나도 없으면 전체가 보이는 상태에서 가리기 창만 덮어요.</p>
+      </section>
+
+      <section class="group" id="selGroup">
+        <h2>선택한 창 <span id="selName"></span></h2>
+        <div class="seg" role="group" aria-label="창 타입">
+          <button id="typeHole" aria-pressed="true">보이기 (창)</button>
+          <button id="typeBlock" aria-pressed="false">가리기 (블로커)</button>
+        </div>
+        <div class="row">
+          <label class="f">X<input type="number" id="wx" step="1"></label>
+          <label class="f">Y<input type="number" id="wy" step="1"></label>
+          <label class="f">가로<input type="number" id="ww" min="1" step="1"></label>
+          <label class="f">세로<input type="number" id="wh" min="1" step="1"></label>
+        </div>
+        <div class="row3" id="align">
+          <button class="btn" data-align="left">왼쪽</button>
+          <button class="btn" data-align="hcenter">가로 중앙</button>
+          <button class="btn" data-align="right">오른쪽</button>
+          <button class="btn" data-align="top">위</button>
+          <button class="btn" data-align="vcenter">세로 중앙</button>
+          <button class="btn" data-align="bottom">아래</button>
+          <button class="btn wide" data-align="fill">캔버스 꽉 채우기</button>
+        </div>
+        <label class="f" id="borderField">보더 두께 (px)
+          <div class="slider">
+            <input type="range" id="wbR" min="0" max="600" step="1" aria-label="보더 두께 슬라이더">
+            <input type="number" id="wb" min="0" step="1">
+          </div>
+        </label>
+        <label class="f">페더 (px)
+          <div class="slider">
+            <input type="range" id="wfR" min="0" max="600" step="1" aria-label="페더 슬라이더">
+            <input type="number" id="wf" min="0" step="1">
+          </div>
+        </label>
+        <label class="f">모서리 라운드 (px)
+          <div class="slider">
+            <input type="range" id="wrR" min="0" max="400" step="1" aria-label="라운드 슬라이더">
+            <input type="number" id="wr" min="0" step="1">
+          </div>
+        </label>
+      </section>
+
+      <section class="group">
+        <h2>페더 방식</h2>
+        <div class="row">
+          <label class="f">방향
+            <select id="dir">
+              <option value="center">경계 중심 (AE 방식)</option>
+              <option value="out">바깥쪽으로 (창 크기 유지)</option>
+              <option value="in">안쪽으로 (보더 유지)</option>
+            </select>
+          </label>
+          <label class="f">커브
+            <select id="curve">
+              <option value="gauss">가우시안</option>
+              <option value="smooth">스무스</option>
+              <option value="linear">리니어</option>
+            </select>
+          </label>
+        </div>
+        <label class="check"><input type="checkbox" id="edgeOpen"> 캔버스 가장자리에 닿은 변은 페더 없음</label>
+      </section>
+
+      <section class="group">
+        <h2>출력</h2>
+        <div class="seg" role="group" aria-label="출력 모드">
+          <button id="modeOverlay" aria-pressed="true">투명 오버레이</button>
+          <button id="modeMatte" aria-pressed="false">흑백 매트</button>
+        </div>
+        <div class="row" id="overlayOpts">
+          <label class="f">마스크 색<input type="color" id="color"></label>
+          <label class="f">불투명도 (%)<input type="number" id="opacity" min="0" max="100" step="1"></label>
+        </div>
+        <div id="matteOpts" hidden>
+          <label class="check"><input type="checkbox" id="invert"> 반전 (마스크 흰색 / 창 검정)</label>
+        </div>
+        <p class="note" id="modeNote"></p>
+        <button class="export" id="export">PNG 저장</button>
+        <p class="status" id="status" role="status"></p>
+        <div id="fallback" hidden>
+          <p class="note">이 화면에서는 바로 저장이 안 돼요. 아래 이미지를 우클릭 → 이미지 저장으로 받아 주세요.</p>
+          <img id="fallbackImg" class="hint-img" alt="내보낸 보더 PNG">
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const LIM = 16384;
+  const clampInt = (v, lo, hi) => { v = Math.round(Number(v)); if (!isFinite(v)) v = lo; return Math.min(hi, Math.max(lo, v)); };
+  const KEY = "borderMaker.v3", OLD_KEY = "borderMaker.v2";
+
+  // 창 타입 t: "hole" = 보이기(영상이 보이는 창), "block" = 가리기(이 영역만 덮음)
+  const DEFAULT = {
+    W: 1920, H: 1080,
+    wins: [{ t: "hole", x: 240, y: 135, w: 1440, h: 810, b: 0, f: 120, r: 0 }],
+    sel: 0, dir: "center", curve: "gauss", edgeOpen: true, mode: "overlay", color: "#000000", opacity: 100, invert: false
+  };
+  let S;
+  const load = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+  S = load(KEY);
+  if (!S) { S = load(OLD_KEY); if (S && Array.isArray(S.wins)) S.edgeOpen = false; } // v2 → v3: 예전 결과 그대로 보이도록 가장자리 페더 유지
+  if (!S || !Array.isArray(S.wins) || !S.wins.length) S = JSON.parse(JSON.stringify(DEFAULT));
+  S.wins.forEach(w => { if (w.t !== "block") w.t = "hole"; });
+  if (typeof S.edgeOpen !== "boolean") S.edgeOpen = true;
+  S.sel = Math.min(Math.max(0, S.sel | 0), S.wins.length - 1);
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
+  const cur = () => S.wins[S.sel];
+
+  /* ---------- mask rendering ---------- */
+  function blur(buf, w, h, F, passes) {
+    const bw = Math.max(1, Math.round(F / passes));
+    if (F <= 0.5 || bw <= 1) return;
+    const n0 = Math.max(w, h);
+    const line = new Float32Array(n0), out = new Float32Array(n0);
+    const lo = Math.floor((bw - 1) / 2), hi = bw - 1 - lo, inv = 1 / bw;
+    const blurLine = n => {
+      let sum = 0;
+      for (let j = 0; j <= hi && j < n; j++) sum += line[j];
+      for (let i = 0; i < n; i++) {
+        out[i] = sum * inv;
+        const add = i + hi + 1, sub = i - lo;
+        if (add < n) sum += line[add];
+        if (sub >= 0) sum -= line[sub];
+      }
+    };
+    for (let p = 0; p < passes; p++) {
+      for (let y = 0; y < h; y++) {
+        const base = y * w;
+        for (let x = 0; x < w; x++) line[x] = buf[base + x];
+        blurLine(w);
+        for (let x = 0; x < w; x++) buf[base + x] = out[x];
+      }
+      for (let x = 0; x < w; x++) {
+        for (let y = 0; y < h; y++) line[y] = buf[y * w + x];
+        blurLine(h);
+        for (let y = 0; y < h; y++) buf[y * w + x] = out[y];
+      }
+    }
+  }
+
+  // mask value 1 = feed visible, 0 = covered
+  // 보이기 창들의 합집합(max) → 가리기 창들로 깎음 (mask = min(mask, 1 - block)). 보이기 창이 없으면 전체가 보이는 상태에서 시작
+  function buildMask(w, h, scale) {
+    const holes = S.wins.filter(x => x.t !== "block"), blocks = S.wins.filter(x => x.t === "block");
+    const mask = new Float32Array(w * h);
+    if (!holes.length) mask.fill(1);
+    for (const win of holes) stamp(mask, win, w, h, scale);
+    if (blocks.length) {
+      const bm = new Float32Array(w * h);
+      for (const win of blocks) stamp(bm, win, w, h, scale);
+      for (let k = 0; k < w * h; k++) { const v = 1 - bm[k]; if (v < mask[k]) mask[k] = v; }
+    }
+    return mask;
+  }
+
+  // 창 하나의 모양(라운드 사각형 + 페더)을 target에 max로 찍음. 값 1 = 창 안
+  function stamp(mask, win, w, h, scale) {
+    const passes = S.curve === "linear" ? 1 : S.curve === "smooth" ? 2 : 3;
+    {
+      const block = win.t === "block";
+      const F = Math.max(0, win.f) * scale;
+      const b = block ? 0 : Math.max(0, win.b);
+      let hx0 = (win.x + b) * scale, hx1 = (win.x + win.w - b) * scale;
+      let hy0 = (win.y + b) * scale, hy1 = (win.y + win.h - b) * scale;
+      if (hx1 - hx0 <= 0 || hy1 - hy0 <= 0) return;
+      // 캔버스 가장자리에 닿거나 넘친 변은 캔버스 밖으로 끝없이 이어진 것으로 → 그 변엔 페더가 안 생김
+      if (S.edgeOpen) {
+        const e = 0.5 * scale, FAR = 1e5;
+        if (hx0 <= e) hx0 = -FAR;
+        if (hy0 <= e) hy0 = -FAR;
+        if (hx1 >= w - e) hx1 = w + FAR;
+        if (hy1 >= h - e) hy1 = h + FAR;
+      }
+      // 방향: out = 보이는 영역 유지(페더가 가림 쪽으로), in = 가림 유지. 가리기 창은 안팎이 반대
+      let off = S.dir === "in" ? F / 2 : S.dir === "out" ? -F / 2 : 0;
+      if (block) off = -off;
+      const margin = Math.ceil(F * 1.1) + 3;
+      // local region, clipped to canvas plus margin so the blur sees the hole edges correctly
+      const lx0 = Math.max(-margin, Math.floor(hx0) - margin), ly0 = Math.max(-margin, Math.floor(hy0) - margin);
+      const lx1 = Math.min(w + margin, Math.ceil(hx1) + margin), ly1 = Math.min(h + margin, Math.ceil(hy1) + margin);
+      const lw = lx1 - lx0, lh = ly1 - ly0;
+      if (lw <= 0 || lh <= 0) return;
+      const cx = (hx0 + hx1) / 2, cy = (hy0 + hy1) / 2, hw = (hx1 - hx0) / 2, hh = (hy1 - hy0) / 2;
+      const r = Math.min(Math.max(0, win.r) * scale, hw, hh);
+      const bx = hw - r, by = hh - r;
+      const loc = new Float32Array(lw * lh);
+      let k = 0;
+      for (let j = 0; j < lh; j++) {
+        const qy = Math.abs(ly0 + j + 0.5 - cy) - by;
+        for (let i = 0; i < lw; i++, k++) {
+          const qx = Math.abs(lx0 + i + 0.5 - cx) - bx;
+          const ox = qx > 0 ? qx : 0, oy = qy > 0 ? qy : 0;
+          const d = Math.sqrt(ox * ox + oy * oy) + Math.min(Math.max(qx, qy), 0) - r + off;
+          const m = 0.5 - d;
+          loc[k] = m < 0 ? 0 : m > 1 ? 1 : m;
+        }
+      }
+      blur(loc, lw, lh, F, passes);
+      const sx = Math.max(0, lx0), ex = Math.min(w, lx1), sy = Math.max(0, ly0), ey = Math.min(h, ly1);
+      for (let y = sy; y < ey; y++) {
+        const lb = (y - ly0) * lw - lx0, mb = y * w;
+        for (let x = sx; x < ex; x++) { const v = loc[lb + x]; if (v > mask[mb + x]) mask[mb + x] = v; }
+      }
+    }
+  }
+
+  function render(canvas, scale) {
+    const w = Math.max(1, Math.round(S.W * scale)), h = Math.max(1, Math.round(S.H * scale));
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+    const mask = buildMask(w, h, w / S.W);
+    const ctx = canvas.getContext("2d");
+    const img = ctx.createImageData(w, h), d8 = img.data;
+    const hex = S.color;
+    const cr = parseInt(hex.slice(1, 3), 16), cg = parseInt(hex.slice(3, 5), 16), cb = parseInt(hex.slice(5, 7), 16);
+    const op = S.opacity / 100;
+    for (let k = 0, i = 0; k < w * h; k++, i += 4) {
+      const a = 1 - mask[k];
+      if (S.mode === "overlay") { d8[i] = cr; d8[i + 1] = cg; d8[i + 2] = cb; d8[i + 3] = Math.round(a * op * 255); }
+      else { const v = Math.round((S.invert ? a : 1 - a) * 255); d8[i] = d8[i + 1] = d8[i + 2] = v; d8[i + 3] = 255; }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  /* ---------- screen sizing ---------- */
+  const screen = $("screen"), layer = $("layer");
+  let dispW = 0, dispH = 0;
+  function fitScreen() {
+    const st = $("stage");
+    const aw = Math.max(100, st.clientWidth - 32);
+    const ah = Math.max(220, window.innerHeight * 0.64);
+    let w = aw, h = w * S.H / S.W;
+    if (h > ah) { h = ah; w = h * S.W / S.H; }
+    dispW = Math.round(w); dispH = Math.round(h);
+    screen.style.width = dispW + "px"; screen.style.height = dispH + "px";
+  }
+  let lastStageW = 0;
+  new ResizeObserver(() => {
+    const w = $("stage").clientWidth;
+    if (w !== lastStageW) { lastStageW = w; fitScreen(); schedule(); drawBoxes(); }
+  }).observe($("stage"));
+
+  /* ---------- render scheduling ---------- */
+  let pending = false, dragging = null;
+  function schedule() {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      let scale = Math.min(1, (dispW * dpr) / S.W);
+      if (dragging) scale *= 0.5;
+      render($("preview"), Math.max(scale, 0.02));
+    });
+  }
+
+  /* ---------- overlay boxes ---------- */
+  const pct = (v, t) => (v / t * 100) + "%";
+  function drawBoxes(snapX = [], snapY = []) {
+    layer.innerHTML = "";
+    if ($("showBoxes").checked) {
+      S.wins.forEach((win, idx) => {
+        const el = document.createElement("div");
+        el.className = "box" + (idx === S.sel ? " sel" : "") + (win.t === "block" ? " block" : "");
+        el.dataset.idx = idx;
+        el.style.left = pct(win.x, S.W); el.style.top = pct(win.y, S.H);
+        el.style.width = pct(win.w, S.W); el.style.height = pct(win.h, S.H);
+        if (win.t !== "block" && win.b > 0 && win.w > 2 * win.b && win.h > 2 * win.b) {
+          const hole = document.createElement("div");
+          hole.className = "hole";
+          hole.style.left = pct(win.b, win.w); hole.style.right = pct(win.b, win.w);
+          hole.style.top = pct(win.b, win.h); hole.style.bottom = pct(win.b, win.h);
+          el.appendChild(hole);
+        }
+        const tag = document.createElement("div");
+        tag.className = "tag";
+        tag.textContent = `${idx + 1}${win.t === "block" ? " 가리기" : ""} · ${win.w}×${win.h}`;
+        el.appendChild(tag);
+        if (idx === S.sel) {
+          for (const [hd, l, t, c] of [["nw",0,0,"nwse"],["n",50,0,"ns"],["ne",100,0,"nesw"],["e",100,50,"ew"],["se",100,100,"nwse"],["s",50,100,"ns"],["sw",0,100,"nesw"],["w",0,50,"ew"]]) {
+            const h = document.createElement("div");
+            h.className = "handle"; h.dataset.h = hd;
+            h.style.left = l + "%"; h.style.top = t + "%"; h.style.cursor = c + "-resize";
+            el.appendChild(h);
+          }
+        }
+        layer.appendChild(el);
+      });
+    }
+    for (const x of snapX) { const s = document.createElement("div"); s.className = "snapline"; s.style.left = pct(x, S.W); s.style.top = 0; s.style.bottom = 0; s.style.width = "1px"; layer.appendChild(s); }
+    for (const y of snapY) { const s = document.createElement("div"); s.className = "snapline"; s.style.top = pct(y, S.H); s.style.left = 0; s.style.right = 0; s.style.height = "1px"; layer.appendChild(s); }
+  }
+
+  /* ---------- panel sync ---------- */
+  function setVal(id, v) { const el = $(id); if (document.activeElement !== el) el.value = v; }
+  function syncPanel() {
+    setVal("cw", S.W); setVal("ch", S.H);
+    document.querySelectorAll("#presets .chip").forEach(c => c.setAttribute("aria-pressed", String(+c.dataset.w === S.W && +c.dataset.h === S.H)));
+    const win = cur();
+    setVal("wx", win.x); setVal("wy", win.y); setVal("ww", win.w); setVal("wh", win.h);
+    setVal("wb", win.b); setVal("wbR", Math.min(win.b, 600));
+    setVal("wf", win.f); setVal("wfR", Math.min(win.f, 600));
+    setVal("wr", win.r); setVal("wrR", Math.min(win.r, 400));
+    $("selName").textContent = `창 ${S.sel + 1}`;
+    $("typeHole").setAttribute("aria-pressed", String(win.t !== "block"));
+    $("typeBlock").setAttribute("aria-pressed", String(win.t === "block"));
+    $("borderField").hidden = win.t === "block";
+    $("edgeOpen").checked = S.edgeOpen;
+    $("dir").value = S.dir; $("curve").value = S.curve;
+    setVal("color", S.color); setVal("opacity", S.opacity); $("invert").checked = S.invert;
+    // window list
+    const list = $("winList"); list.innerHTML = "";
+    S.wins.forEach((w, i) => {
+      const b = document.createElement("button");
+      b.className = "winrow"; b.setAttribute("aria-pressed", String(i === S.sel));
+      b.innerHTML = `<span>창 ${i + 1}${w.t === "block" ? ' <em class="kind">가리기</em>' : ""}</span><small>${w.w}×${w.h} @ ${w.x},${w.y}</small>`;
+      b.addEventListener("click", () => { S.sel = i; update(); });
+      list.appendChild(b);
+    });
+    $("winCount").textContent = `${S.wins.length}개`;
+    $("delWin").disabled = S.wins.length <= 1;
+    $("readout").innerHTML = `캔버스 <b>${S.W}×${S.H}</b> · 창 ${S.sel + 1} <b>${win.w}×${win.h}</b> @ <b>${win.x}, ${win.y}</b>` + (cursorTxt ? ` · 커서 <b>${cursorTxt}</b>` : "");
+  }
+  let cursorTxt = "";
+  function update(opts = {}) {
+    syncPanel();
+    if (!opts.noBoxes) drawBoxes();
+    schedule();
+    save();
+  }
+
+  /* ---------- pointer interaction ---------- */
+  function toCanvas(e) {
+    const r = screen.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width * S.W, y: (e.clientY - r.top) / r.height * S.H, k: S.W / r.width };
+  }
+  function snapCands(axis, skip) {
+    const T = axis === "x" ? S.W : S.H;
+    const c = [0, T / 2, T];
+    S.wins.forEach((w, i) => {
+      if (i === skip) return;
+      const a = axis === "x" ? w.x : w.y, s = axis === "x" ? w.w : w.h;
+      c.push(a, a + s / 2, a + s);
+    });
+    return c;
+  }
+  // returns {delta, line} best snap of any of `vals` to candidates within thr
+  function bestSnap(vals, cands, thr) {
+    let best = null;
+    for (const v of vals) for (const c of cands) {
+      const d = c - v;
+      if (Math.abs(d) <= thr && (!best || Math.abs(d) < Math.abs(best.delta))) best = { delta: d, line: c };
+    }
+    return best;
+  }
+
+  layer.addEventListener("pointerdown", e => {
+    const boxEl = e.target.closest(".box");
+    if (!boxEl) return;
+    e.preventDefault();
+    const idx = +boxEl.dataset.idx;
+    if (idx !== S.sel) { S.sel = idx; update(); }
+    const handle = e.target.closest(".handle");
+    const p = toCanvas(e);
+    dragging = { kind: handle ? handle.dataset.h : "move", start: p, orig: { ...cur() } };
+    layer.setPointerCapture(e.pointerId);
+  });
+  layer.addEventListener("pointermove", e => {
+    const p = toCanvas(e);
+    cursorTxt = `${Math.round(p.x)}, ${Math.round(p.y)}`;
+    if (!dragging) { syncPanel(); return; }
+    const o = dragging.orig, win = cur();
+    let dx = p.x - dragging.start.x, dy = p.y - dragging.start.y;
+    const doSnap = $("snap").checked && !e.altKey;
+    const thr = 8 * p.k;
+    const lx = [], ly = [];
+    if (dragging.kind === "move") {
+      let nx = o.x + dx, ny = o.y + dy;
+      if (doSnap) {
+        const sx = bestSnap([nx, nx + o.w / 2, nx + o.w], snapCands("x", S.sel), thr);
+        const sy = bestSnap([ny, ny + o.h / 2, ny + o.h], snapCands("y", S.sel), thr);
+        if (sx) { nx += sx.delta; lx.push(sx.line); }
+        if (sy) { ny += sy.delta; ly.push(sy.line); }
+      }
+      win.x = Math.round(nx); win.y = Math.round(ny);
+    } else {
+      const k = dragging.kind;
+      let x0 = o.x, y0 = o.y, x1 = o.x + o.w, y1 = o.y + o.h;
+      if (k.includes("w")) x0 += dx;
+      if (k.includes("e")) x1 += dx;
+      if (k.includes("n")) y0 += dy;
+      if (k.includes("s")) y1 += dy;
+      if (doSnap) {
+        const cx = snapCands("x", S.sel), cy = snapCands("y", S.sel);
+        if (k.includes("w")) { const s = bestSnap([x0], cx, thr); if (s) { x0 += s.delta; lx.push(s.line); } }
+        if (k.includes("e")) { const s = bestSnap([x1], cx, thr); if (s) { x1 += s.delta; lx.push(s.line); } }
+        if (k.includes("n")) { const s = bestSnap([y0], cy, thr); if (s) { y0 += s.delta; ly.push(s.line); } }
+        if (k.includes("s")) { const s = bestSnap([y1], cy, thr); if (s) { y1 += s.delta; ly.push(s.line); } }
+      }
+      if (x1 - x0 < 8) { if (k.includes("w")) x0 = x1 - 8; else x1 = x0 + 8; }
+      if (y1 - y0 < 8) { if (k.includes("n")) y0 = y1 - 8; else y1 = y0 + 8; }
+      if (e.shiftKey && k.length === 2) {
+        const ratio = o.w / o.h;
+        let nw = x1 - x0, nh = y1 - y0;
+        if (nw / nh > ratio) nh = nw / ratio; else nw = nh * ratio;
+        if (k.includes("w")) x0 = x1 - nw; else x1 = x0 + nw;
+        if (k.includes("n")) y0 = y1 - nh; else y1 = y0 + nh;
+        lx.length = 0; ly.length = 0;
+      }
+      win.x = Math.round(x0); win.y = Math.round(y0);
+      win.w = Math.max(1, Math.round(x1 - x0)); win.h = Math.max(1, Math.round(y1 - y0));
+    }
+    syncPanel(); drawBoxes(lx, ly); schedule();
+  });
+  const endDrag = () => { if (!dragging) return; dragging = null; update(); };
+  layer.addEventListener("pointerup", endDrag);
+  layer.addEventListener("pointercancel", endDrag);
+  layer.addEventListener("pointerleave", () => { if (!dragging) { cursorTxt = ""; syncPanel(); } });
+
+  document.addEventListener("keydown", e => {
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA")) return;
+    const step = e.shiftKey ? 10 : 1;
+    const win = cur();
+    if (e.key === "ArrowLeft") win.x -= step;
+    else if (e.key === "ArrowRight") win.x += step;
+    else if (e.key === "ArrowUp") win.y -= step;
+    else if (e.key === "ArrowDown") win.y += step;
+    else return;
+    e.preventDefault(); update();
+  });
+
+  /* ---------- controls ---------- */
+  const bindNum = (id, fn) => $(id).addEventListener("input", () => { if ($(id).value === "") return; fn(+$(id).value); update(); });
+  bindNum("cw", v => { S.W = clampInt(v, 16, LIM); fitScreen(); });
+  bindNum("ch", v => { S.H = clampInt(v, 16, LIM); fitScreen(); });
+  $("presets").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    S.W = +b.dataset.w; S.H = +b.dataset.h; fitScreen(); update();
+  });
+  bindNum("wx", v => cur().x = clampInt(v, -LIM, LIM));
+  bindNum("wy", v => cur().y = clampInt(v, -LIM, LIM));
+  bindNum("ww", v => cur().w = clampInt(v, 1, LIM));
+  bindNum("wh", v => cur().h = clampInt(v, 1, LIM));
+  for (const [k, id] of [["b", "wb"], ["f", "wf"], ["r", "wr"]]) {
+    bindNum(id, v => cur()[k] = clampInt(v, 0, LIM));
+    bindNum(id + "R", v => { cur()[k] = clampInt(v, 0, LIM); $(id).value = cur()[k]; });
+  }
+  $("align").addEventListener("click", e => {
+    const b = e.target.closest("[data-align]"); if (!b) return;
+    const w = cur();
+    switch (b.dataset.align) {
+      case "left": w.x = 0; break;
+      case "hcenter": w.x = Math.round((S.W - w.w) / 2); break;
+      case "right": w.x = S.W - w.w; break;
+      case "top": w.y = 0; break;
+      case "vcenter": w.y = Math.round((S.H - w.h) / 2); break;
+      case "bottom": w.y = S.H - w.h; break;
+      case "fill": w.x = 0; w.y = 0; w.w = S.W; w.h = S.H; break;
+    }
+    update();
+  });
+  $("addWin").addEventListener("click", () => {
+    const w = Math.round(S.W / 3), h = Math.round(S.H / 3);
+    S.wins.push({ t: "hole", x: Math.round((S.W - w) / 2), y: Math.round((S.H - h) / 2), w, h, b: cur().b, f: cur().f, r: cur().r });
+    S.sel = S.wins.length - 1; update();
+  });
+  // 띠 프리셋: 캔버스 끝에서 끝까지 이어진 가리기 띠 (가장자리 페더 없음 켜짐)
+  $("bandV").addEventListener("click", () => {
+    const w = Math.round(S.W / 5);
+    S.wins.push({ t: "block", x: Math.round((S.W - w) / 2), y: 0, w, h: S.H, b: 0, f: Math.round(w / 2), r: 0 });
+    S.edgeOpen = true; S.sel = S.wins.length - 1; update();
+  });
+  $("bandH").addEventListener("click", () => {
+    const h = Math.round(S.H / 5);
+    S.wins.push({ t: "block", x: 0, y: Math.round((S.H - h) / 2), w: S.W, h, b: 0, f: Math.round(h / 2), r: 0 });
+    S.edgeOpen = true; S.sel = S.wins.length - 1; update();
+  });
+  $("typeHole").addEventListener("click", () => { cur().t = "hole"; update(); });
+  $("typeBlock").addEventListener("click", () => { cur().t = "block"; update(); });
+  $("edgeOpen").addEventListener("change", () => { S.edgeOpen = $("edgeOpen").checked; update({ noBoxes: true }); });
+  $("dupWin").addEventListener("click", () => {
+    const c = { ...cur() }; c.x += 40; c.y += 40;
+    S.wins.push(c); S.sel = S.wins.length - 1; update();
+  });
+  $("delWin").addEventListener("click", () => {
+    if (S.wins.length <= 1) return;
+    S.wins.splice(S.sel, 1); S.sel = Math.min(S.sel, S.wins.length - 1); update();
+  });
+  $("dir").addEventListener("change", () => { S.dir = $("dir").value; update(); });
+  $("curve").addEventListener("change", () => { S.curve = $("curve").value; update(); });
+  $("color").addEventListener("input", () => { S.color = $("color").value; update({ noBoxes: true }); });
+  bindNum("opacity", v => S.opacity = clampInt(v, 0, 100));
+  $("invert").addEventListener("change", () => { S.invert = $("invert").checked; update({ noBoxes: true }); });
+
+  $("feedBg").addEventListener("change", () => screen.classList.toggle("feed", $("feedBg").checked));
+  $("safeGuide").addEventListener("change", () => { $("safe").hidden = !$("safeGuide").checked; });
+  $("showBoxes").addEventListener("change", () => drawBoxes());
+
+  $("guideFile").addEventListener("change", () => {
+    const f = $("guideFile").files[0]; if (!f) return;
+    const img = $("guideImg");
+    if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+    img.src = URL.createObjectURL(f);
+    img.hidden = false; $("guideRow").hidden = false;
+    img.onload = () => {
+      if (img.naturalWidth && (img.naturalWidth !== S.W || img.naturalHeight !== S.H)) {
+        $("status").textContent = `가이드 이미지가 ${img.naturalWidth}×${img.naturalHeight}예요. 캔버스 사이즈를 맞추려면 위에 입력해 주세요.`;
+      }
+    };
+  });
+  $("guideOp").addEventListener("input", () => { $("guideImg").style.opacity = $("guideOp").value / 100; });
+  $("guideClear").addEventListener("click", () => {
+    const img = $("guideImg");
+    if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+    img.removeAttribute("src"); img.hidden = true; $("guideRow").hidden = true; $("guideFile").value = "";
+  });
+
+  const notes = {
+    overlay: "보이는 영역은 투명, 가려지는 영역은 마스크 색. 캔버스 전체 사이즈 PNG라 LED 아웃풋 위에 그대로 얹으면 돼요.",
+    matte: "흰색 = 영상이 보이는 영역, 검정 = 가려지는 영역. 루마 매트·마스크용."
+  };
+  function setMode(m) {
+    S.mode = m;
+    $("modeOverlay").setAttribute("aria-pressed", String(m === "overlay"));
+    $("modeMatte").setAttribute("aria-pressed", String(m === "matte"));
+    $("overlayOpts").hidden = m !== "overlay";
+    $("matteOpts").hidden = m !== "matte";
+    $("modeNote").textContent = notes[m];
+    update({ noBoxes: true });
+  }
+  $("modeOverlay").addEventListener("click", () => setMode("overlay"));
+  $("modeMatte").addEventListener("click", () => setMode("matte"));
+
+  /* ---------- export ---------- */
+  let downloadsP = null;
+  try { downloadsP = window.claude?.use ? window.claude.use("downloads") : null; } catch { downloadsP = null; }
+
+  $("export").addEventListener("click", async () => {
+    const btn = $("export"), st = $("status");
+    btn.disabled = true; st.textContent = "풀 해상도로 렌더링 중…";
+    await new Promise(r => setTimeout(r, 30));
+    const off = document.createElement("canvas");
+    try { render(off, 1); }
+    catch { st.textContent = "렌더링 실패: 캔버스 사이즈를 줄여서 다시 시도해 주세요."; btn.disabled = false; return; }
+    const blob = await new Promise(r => off.toBlob(r, "image/png"));
+    if (!blob) { st.textContent = "PNG 변환 실패: 캔버스 사이즈를 줄여서 다시 시도해 주세요."; btn.disabled = false; return; }
+    const w0 = S.wins[0];
+    const name = `border_${S.W}x${S.H}` +
+      (S.wins.length === 1 ? `_${w0.t === "block" ? "block" : "win"}${w0.w}x${w0.h}_f${w0.f}` : `_${S.wins.length}win`) +
+      (S.mode === "matte" ? "_matte" : "") + ".png";
+    const dl = downloadsP ? await downloadsP : null;
+    if (dl) {
+      try { await dl.save({ filename: name, data: blob }); st.textContent = `${name} 저장 완료`; $("fallback").hidden = true; }
+      catch (e) {
+        const c = e && e.code;
+        if (c === "declined") st.textContent = "저장을 취소했어요.";
+        else if (c === "rate_limited") st.textContent = "저장 창이 이미 열려 있어요. 잠시 후 다시 눌러 주세요.";
+        else showFallback(blob, name);
+      }
+    } else showFallback(blob, name);
+    btn.disabled = false;
+  });
+  function showFallback(blob, name) {
+    const img = $("fallbackImg");
+    if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+    img.src = URL.createObjectURL(blob);
+    $("fallback").hidden = false;
+    $("status").textContent = `${name} 준비됨`;
+  }
+
+  fitScreen();
+  setMode(S.mode === "matte" ? "matte" : "overlay");
+  update();
+})();
+</script>
+</body>
+</html>

@@ -63,6 +63,25 @@ npm run hash -- "원하는비밀번호"
 - 내보낸 PNG·영상은 백업에 들어가지 않습니다. 저장할 때 "이미지/비디오 저장"으로 사진 앱에 넣으면 iCloud 사진으로 Mac에 자동 동기화됩니다.
 - 예전 버전 백업도 `schemaVersion`을 보고 자동 변환됩니다.
 
+## 3-1. VJ 도구 (홈 화면 "VJ 도구")
+
+큐시트 메이커 · Border Maker · 3D 로고 루프 · VJ 근무일지가 이 앱 안에 함께 들어 있습니다 (`public/tools/*.html`). 오프라인에서도 열리고, 오른쪽 아래 **← 홈**으로 돌아옵니다. 각 도구 데이터도 아래 백업·동기화에 포함됩니다.
+
+## 3-2. 구글 드라이브 동기화 (폰 ↔ PC)
+
+메뉴 → **백업 · 동기화** → 구글 드라이브. 같은 구글 계정이면 폰·PC 어디서 고쳐도 **지금 동기화**로 맞춰집니다 (항목마다 더 최근에 고친 쪽이 남음). 로그인이 살아 있으면 앱을 열 때 자동으로 맞춥니다.
+
+처음 한 번 구글 OAuth **클라이언트 ID**가 필요합니다 (무료, 약 5분):
+
+1. [Google Cloud Console](https://console.cloud.google.com) → 새 프로젝트
+2. API 및 서비스 → 라이브러리 → **Google Drive API** 사용 설정
+3. OAuth 동의 화면 → 외부 → 앱 이름·이메일 → 범위에 `.../auth/drive.appdata` → 테스트 사용자에 본인 계정 추가
+4. 사용자 인증 정보 → OAuth 클라이언트 ID → **웹 애플리케이션** → 승인된 JavaScript 원본에 `https://vjzuno.github.io` 추가
+5. 나온 ID(`…apps.googleusercontent.com`)를 앱의 백업 · 동기화 화면에 붙여넣기 (폰·PC 각각 한 번)
+   - 또는 GitHub 저장소 Settings → Secrets and variables → Actions → **Variables** 에 `VITE_GOOGLE_CLIENT_ID` 로 넣으면 다음 배포부터 모든 기기에 자동 적용
+
+앱은 드라이브의 **앱 전용 숨김 폴더**(appDataFolder)만 읽고 씁니다. 다른 드라이브 파일은 볼 수 없습니다.
+
 ## 사용 팁
 
 - **인풋맵 불러오기:** ① 인풋 가이드 맨 위 버튼. 인풋맵 이미지(PNG·JPG)나 Resolume Advanced Output 프리셋(`Documents/Resolume Arena/Presets/Advanced Output/*.xml`)을 고르면 면 이름·크기·위치·캔버스를 한 번에 채웁니다.

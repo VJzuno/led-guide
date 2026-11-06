@@ -4,6 +4,7 @@ import { SCHEMA_VERSION, PRESETS, type OutputPreset } from '../types';
 import { saveToICloud, loadFromFile, lastBackupAt, lastLoadAt, changedSinceBackup, needsBackup, ago } from '../sync';
 import { isIOS } from '../export';
 import { createSample } from '../sample';
+import { clientId, clientFromBuild, setClientId, validClientId, isLinked, lastDriveSync, syncDrive, unlinkDrive } from '../gdrive';
 import { TopBar, Seg, go, timeAgo } from './common';
 
 declare const __APP_VERSION__: string;
@@ -17,7 +18,7 @@ export function Menu({ sub }: { sub?: string }) {
   const items: [string, string, string][] = [
     ['about', 'About', '앱 소개'],
     ['trash', '휴지통', '삭제한 프로젝트 / LED 복구'],
-    ['backup', 'iCloud 백업', needsBackup() ? `바뀐 항목 ${changedSinceBackup()}개 · 저장 필요` : `마지막 저장 ${ago(lastBackupAt())}`],
+    ['backup', '백업 · 동기화', needsBackup() ? `바뀐 항목 ${changedSinceBackup()}개 · 동기화 필요` : isLinked() ? `구글 드라이브 ${ago(lastDriveSync())}` : `마지막 저장 ${ago(lastBackupAt())}`],
     ['settings', '설정', '포인트 컬러, 기본 프리셋'],
   ];
   return (
@@ -122,9 +123,10 @@ function Backup() {
     setBusy(true);
     try {
       const r = await loadFromFile(f);
-      const total = r.added + r.updated;
+      const total = r.added + r.updated + r.tools.length;
       await notice(
-        `${r.from ? r.from + '에서 ' : ''}${timeAgo(r.exportedAt)}에 저장한 백업을 합쳤습니다.\n\n새로 추가 ${r.added} · 최신으로 바뀜 ${r.updated} · 그대로 ${r.kept}` +
+        `${r.from ? r.from + '에서 ' : ''}${timeAgo(r.exportedAt)}에 저장한 백업을 합쳤습니다.\n\nLED 새로 추가 ${r.added} · 최신으로 바뀜 ${r.updated} · 그대로 ${r.kept}` +
+          (r.tools.length ? `\n도구: ${r.tools.join(', ')}` : '') +
           (total === 0 ? '\n\n이 기기가 이미 최신입니다.' : ''),
       );
     } catch (err: any) {
@@ -135,7 +137,11 @@ function Backup() {
 
   return (
     <div class="screen">
-      <TopBar title="iCloud 백업" back="/menu" />
+      <TopBar title="백업 · 동기화" back="/menu" />
+
+      <DriveCard />
+
+      <div class="section-title">iCloud 파일 백업</div>
 
       <div class={'card stack' + (needsBackup() ? ' accent' : '')}>
         <div class="row">
@@ -174,6 +180,81 @@ function Backup() {
   );
 }
 
+
+/** 구글 드라이브: 클라이언트 ID 설정 → 계정 연결 → 지금 동기화 */
+function DriveCard() {
+  const s = useStore();
+  const [busy, setBusy] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [editId, setEditId] = useState(false);
+  const id = clientId();
+  const linked = isLinked();
+  const changed = changedSinceBackup();
+
+  const sync = async () => {
+    setBusy(true);
+    try {
+      const r = await syncDrive(true);
+      const n = r.added + r.updated;
+      await notice(r.first
+        ? '구글 드라이브에 처음으로 올렸습니다.\n다른 기기(폰·PC)에서 같은 구글 계정으로 "지금 동기화"를 누르면 이 데이터가 합쳐집니다.'
+        : `드라이브와 동기화했습니다.\n\n받아서 합친 LED: 새로 ${r.added} · 최신으로 ${r.updated}` + (r.tools.length ? `\n도구: ${r.tools.join(', ')}` : '') +
+          (n + r.tools.length === 0 ? '\n\n이 기기가 이미 최신이었고, 변경 사항을 드라이브에 올렸습니다.' : ''));
+    } catch (e: any) { toast(e?.message || String(e)); }
+    setBusy(false);
+  };
+  const saveId = () => {
+    if (!validClientId(draft)) { toast('클라이언트 ID 형식이 아니에요 (…apps.googleusercontent.com)'); return; }
+    setClientId(draft); setDraft(''); setEditId(false); toast('저장했습니다. 이제 구글 계정을 연결하세요');
+  };
+
+  if (!id || editId) {
+    return (
+      <div class="card stack">
+        <div style="font-weight:600">구글 드라이브 동기화</div>
+        <div class="small muted">폰·PC 어디서 고쳐도 같은 구글 계정으로 맞춰집니다. LED 프로젝트와 큐시트·근무일지·Border Maker·3D 로고 데이터가 모두 들어가요. 처음 한 번 구글 OAuth 클라이언트 ID가 필요합니다.</div>
+        <input class="input" value={draft} placeholder="1234…-abc.apps.googleusercontent.com" autoComplete="off" autoCapitalize="off" spellcheck={false}
+          onInput={(e) => setDraft((e.target as HTMLInputElement).value)} aria-label="구글 OAuth 클라이언트 ID" />
+        <div class="row">
+          {editId && <button class="btn grow" onClick={() => { setEditId(false); setDraft(''); }}>취소</button>}
+          <button class="btn primary grow" disabled={!draft.trim()} onClick={saveId}>클라이언트 ID 저장</button>
+        </div>
+        <details class="small muted drive-help">
+          <summary>클라이언트 ID 만드는 법 (처음 한 번, 약 5분)</summary>
+          <ol>
+            <li><b>console.cloud.google.com</b> → 새 프로젝트 만들기 (예: ZUNO LED)</li>
+            <li><b>API 및 서비스 → 라이브러리</b>에서 <b>Google Drive API</b> 사용 설정</li>
+            <li><b>OAuth 동의 화면</b>: 외부 → 앱 이름·이메일 입력 → 범위에 <code>…/auth/drive.appdata</code> 추가 → 테스트 사용자에 본인 구글 계정 추가</li>
+            <li><b>사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID</b> → 유형 <b>웹 애플리케이션</b></li>
+            <li><b>승인된 JavaScript 원본</b>에 <code>{location.origin}</code> 추가 (PC에서 로컬로도 쓰면 <code>http://localhost:5174</code>도)</li>
+            <li>만들어진 <b>클라이언트 ID</b>(…apps.googleusercontent.com)를 위 칸에 붙여넣기. 폰·PC 각각 한 번씩</li>
+          </ol>
+          <div>클라이언트 ID는 비밀번호가 아니라 공개되는 값이에요. 앱은 드라이브의 <b>앱 전용 숨김 폴더</b>만 쓰고, 다른 파일은 볼 수 없습니다.</div>
+        </details>
+      </div>
+    );
+  }
+
+  return (
+    <div class={'card stack' + (needsBackup() ? ' accent' : '')}>
+      <div class="row">
+        <div class="grow">
+          <div style="font-weight:600">구글 드라이브 동기화 {linked && <span class="chip on" style="min-height:24px;margin-left:6px">연결됨</span>}</div>
+          <div class="small muted">마지막 동기화 <b class="num">{ago(lastDriveSync())}</b>{changed > 0 && <> · 그 뒤로 바뀐 항목 <b class="num" style="color:var(--accent)">{changed}</b></>}</div>
+        </div>
+      </div>
+      <button class="btn primary big block" disabled={busy || !s.online} onClick={sync}>
+        {busy ? '동기화 중…' : linked ? '⇅ 지금 동기화' : 'G  구글 계정 연결 · 동기화'}
+      </button>
+      {!s.online && <div class="small" style="color:var(--danger)">오프라인이라 동기화할 수 없어요. 작업은 계속 이 기기에 저장됩니다.</div>}
+      <div class="small muted">받아서 합친 뒤 다시 올립니다. 항목마다 <b>더 최근에 고친 쪽</b>이 남아요. 로그인이 살아 있으면 앱을 열 때도 자동으로 맞춥니다.</div>
+      <div class="row wrap">
+        {linked && <button class="btn" disabled={busy} onClick={async () => { if (await ask('이 기기에서 구글 드라이브 연결을 해제할까요?\n드라이브의 백업 파일과 이 기기 데이터는 그대로 남습니다.', '해제')) unlinkDrive(); }}>연결 해제</button>}
+        {!clientFromBuild() && <button class="btn ghost" onClick={() => setEditId(true)}>클라이언트 ID 바꾸기</button>}
+      </div>
+    </div>
+  );
+}
 
 const SWATCHES = ['#5613C8', '#A855F7', '#8B5CF6', '#D946EF', '#EC4899', '#F43F5E', '#F97316', '#EAB308', '#22C55E', '#06B6D4', '#3B82F6', '#FFFFFF'];
 

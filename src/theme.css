@@ -308,3 +308,15 @@ label.btn.disabled { opacity: .35; pointer-events: none; }
 .preview .map-overlay { position: absolute; left: 0; top: 0; pointer-events: none; mix-blend-mode: normal; }
 .map-alpha { width: 110px; accent-color: var(--accent); }
 @media (max-width: 480px) { .imp-row { grid-template-columns: 24px minmax(0, 1fr) auto; } .imp-row .mono:nth-of-type(1) { display: none; } }
+
+/* ---------- 홈: VJ 도구 ---------- */
+.tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tool-grid .tool-card { display: flex; flex-direction: column; gap: 4px; margin: 0; text-decoration: none; color: inherit; min-height: 104px; }
+.tool-card:active { transform: scale(.98); }
+.tool-ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 30%, transparent); border: 1px solid var(--accent); font-family: var(--f-mono); font-weight: 700; margin-bottom: 4px; }
+.tool-name { font-weight: 600; }
+
+/* ---------- 구글 드라이브 안내 ---------- */
+.drive-help summary { cursor: pointer; color: var(--text-2); font-weight: 600; padding: 4px 0; }
+.drive-help ol { margin: 8px 0; padding-left: 20px; line-height: 1.7; }
+.drive-help code { font-family: var(--f-mono); font-size: 11px; color: var(--text-2); word-break: break-all; }
