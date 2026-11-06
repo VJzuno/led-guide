@@ -180,9 +180,7 @@ async function refBody(x: CanvasRenderingContext2D, ox: number, oy: number, S: n
       }
       x.restore();
     }
-    // 둥근 외곽을 따라가는 테두리
-    x.strokeStyle = W(0.5); x.lineWidth = lw;
-    x.beginPath(); x.roundRect(ox + i, oy + i, S - i * 2, S - i * 2, r); x.stroke();
+    // (2026-11-06) 둥근 외곽을 따라가던 안쪽 테두리 선은 뺌 — 바깥 검은 틀 하나만
     // 대각선: 테두리 안쪽만
     const k = r * (1 - Math.SQRT1_2);          // 대각선이 둥근 모서리와 만나는 지점까지의 거리
     const a = i + k, b = S - i - k;
