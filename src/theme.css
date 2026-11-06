@@ -290,3 +290,21 @@ label.btn.disabled { opacity: .35; pointer-events: none; }
 .check.on { background: var(--accent); border-color: var(--accent); }
 .led-row.sel, .list-item.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 10px; }
 .led-row.selecting { grid-template-columns: 26px 34px 1fr auto; cursor: pointer; }
+
+/* ---------- 인풋맵 불러오기 ---------- */
+.import-btn { display: flex; justify-content: center; align-items: baseline; gap: 8px; margin: 0 0 10px; min-height: 44px; border-style: dashed; }
+.modal-box.wide { max-width: 640px; max-height: calc(100dvh - 48px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.import .imp-file { margin-top: 4px; word-break: break-all; }
+.imp-preview { display: block; width: 100%; height: auto; margin: 10px 0; border: 1px solid var(--line); border-radius: 8px; background: #000; }
+.imp-list { display: flex; flex-direction: column; gap: 4px; }
+.imp-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
+.imp-row .input { min-height: 36px; padding: 0 8px; }
+.imp-row .mono { color: var(--text-2); white-space: nowrap; }
+.imp-row.off .input, .imp-row.off .mono { opacity: .4; }
+.imp-row input[type=checkbox], .imp-opts input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; }
+.imp-opts { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; font-size: 13px; }
+.imp-opts label { display: flex; gap: 8px; align-items: flex-start; line-height: 1.4; }
+.imp-opts label input { flex: none; margin-top: 1px; }
+.preview .map-overlay { position: absolute; left: 0; top: 0; pointer-events: none; mix-blend-mode: normal; }
+.map-alpha { width: 110px; accent-color: var(--accent); }
+@media (max-width: 480px) { .imp-row { grid-template-columns: 24px minmax(0, 1fr) auto; } .imp-row .mono:nth-of-type(1) { display: none; } }

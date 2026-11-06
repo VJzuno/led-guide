@@ -6,6 +6,7 @@ import {
   TopBar, NumField, NumInput, PairField, TextField, Seg, Section, OptionToggles, TypoControls,
   GuidePreview, ExportButtons, LogoPicker, MotionControls, go,
 } from './common';
+import { ImportMapButton } from './ImportMap';
 
 export function InputGuide({ id }: { id: string }) {
   useStore();
@@ -35,6 +36,9 @@ export function InputGuide({ id }: { id: string }) {
           </div>
         ) : <span class="num small muted">{lay.W} × {lay.H}</span>}
       </div>
+
+      {/* 인풋맵(이미지 / Resolume XML)으로 면·위치·캔버스 한 번에 */}
+      <ImportMapButton led={l} />
 
       {/* 2. 프리뷰 (위치 편집 가능) */}
       <GuidePreview led={l} kind="IN" />

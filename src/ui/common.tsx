@@ -7,6 +7,7 @@ import { drawFrame, buildTimeline, buildDuration, motionOf, MOTION, DEFAULT_LOGO
 import { snapPos } from '../layout';
 import { evalExpr, isExpr } from '../calc';
 import type { VideoVariant } from '../video';
+import { MapOverlay } from './ImportMap';
 
 export const go = (path: string) => { location.hash = '#' + path; };
 
@@ -198,6 +199,8 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
   const [edit, setEdit] = useState(false);
   const [snap, setSnap] = useState(true);
   const [active, setActive] = useState<string | null>(null);
+  const [mapOn, setMapOn] = useState(false);
+  const [mapAlpha, setMapAlpha] = useState(0.5);
   const timer = useRef<number>();
   const start = useRef<[number, number]>([0, 0]);
   const t0 = useRef(performance.now());
@@ -308,6 +311,7 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
         onDblClick={() => !edit && open()}
       >
         <canvas ref={ref} />
+        {kind === 'IN' && mapOn && <MapOverlay led={led} W={lay.W} H={lay.H} opacity={mapAlpha} />}
         {edit && lay.faces.map((f) => (
           <div key={f.face.id} class={'face-box' + (active === f.face.id ? ' on' : '') + (f.overflow ? ' over' : '')}
             style={{ left: (f.x / lay.W) * 100 + '%', top: (f.y / lay.H) * 100 + '%', width: (f.w / lay.W) * 100 + '%', height: (f.h / lay.H) * 100 + '%' }}
@@ -324,6 +328,14 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
         <button class={'chip' + (edit ? ' on' : '')} onClick={() => setEdit(!edit)}>✥ 위치 편집</button>
         {edit && <button class={'chip' + (snap ? ' on' : '')} onClick={() => setSnap(!snap)}>자석 스냅 {snap ? 'ON' : 'OFF'}</button>}
         {edit && manual && <button class="chip" onClick={() => updateLed(led.id, (x) => { delete x[key].manual; return x; })}>자동 배치</button>}
+        {kind === 'IN' && led.input.map && <button class={'chip' + (mapOn ? ' on' : '')} onClick={() => setMapOn(!mapOn)}>◧ 인풋맵 겹쳐보기</button>}
+        {kind === 'IN' && led.input.map && mapOn && (
+          <>
+            <input type="range" class="map-alpha" min={0.1} max={1} step={0.05} value={mapAlpha} aria-label="인풋맵 불투명도"
+              onInput={(e) => setMapAlpha(+(e.target as HTMLInputElement).value)} />
+            <button class="chip" onClick={() => { setMapOn(false); updateLed(led.id, (x) => { delete x.input.map; return x; }); }}>맵 지우기</button>
+          </>
+        )}
       </div>
       {err && <div class="small" style="color:var(--danger);margin-top:6px">{err}</div>}
       {view && <Viewer src={view} onClose={() => setView(null)} />}

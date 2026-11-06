@@ -81,6 +81,8 @@ export interface Led {
     canvas?: { mode: 'auto' | 'custom'; w: number; h: number };
     /** 면별 수동 위치 (드래그 배치). 값이 있으면 자동 배치보다 우선 */
     manual?: Record<string, { x: number; y: number }>;
+    /** 불러온 인풋맵 원본 (검수용 반투명 오버레이, 축소 JPEG). PNG/영상 출력에는 안 들어감 */
+    map?: { src: string; w: number; h: number };
     doneAt?: number;
   };
   output: {
