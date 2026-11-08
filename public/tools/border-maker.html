@@ -754,6 +754,11 @@ input[type=range] { width: 100%; accent-color: var(--accent-text); }
         else if (c === "rate_limited") st.textContent = "저장 창이 이미 열려 있어요. 잠시 후 다시 눌러 주세요.";
         else showFallback(blob, name);
       }
+    } else if (window.zunoSave) {
+      // 앱 안: 아이폰은 공유 시트(사진·파일에 저장), PC는 다운로드
+      const r = await window.zunoSave(blob, name);
+      st.textContent = r === "cancelled" ? "저장을 취소했어요." : `${name} 저장 완료`;
+      $("fallback").hidden = true;
     } else showFallback(blob, name);
     btn.disabled = false;
   });

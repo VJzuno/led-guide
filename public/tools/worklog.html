@@ -925,6 +925,7 @@
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const t = new Date();
             const stamp = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+            if (window.zunoSave) { window.zunoSave(blob, `VJ근무일지_백업_${stamp}.json`); return; } // 아이폰: 공유 시트
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = `VJ근무일지_백업_${stamp}.json`;

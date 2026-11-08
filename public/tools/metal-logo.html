@@ -562,6 +562,7 @@ const DEFAULT_LOGO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA6IAAADTCAYA
 function setStatus(m){ $('status').textContent = m; }
 function setBar(p){ $('bar').style.width = (p*100).toFixed(1) + '%'; }
 function save(blob, name){
+  if (window.zunoSave) return window.zunoSave(blob, name); // 아이폰: 공유 시트 / PC: 다운로드
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 60000);
@@ -668,8 +669,7 @@ $('presetDel').onclick = () => {
 };
 $('presetExport').onclick = () => {
   const blob = new Blob([JSON.stringify({ app: 'metal-logo-loop', version: 1, presets }, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'metal-logo-presets.json';
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  save(blob, 'metal-logo-presets.json');
 };
 $('presetImport').onclick = () => $('presetFile').click();
 $('presetFile').onchange = e => {

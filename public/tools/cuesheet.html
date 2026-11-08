@@ -1234,7 +1234,8 @@
     const blob = await zip.generateAsync({ type: "blob", compression: "STORE" });
     const show = currentShow();
     const base = ((show && show.name) || "cuesheet").replace(/[\/\\:*?"<>|]/g, "_").slice(0, 60);
-    await downloadSaver().save(base + "_큐시트.zip", blob);
+    if (window.zunoSave) await window.zunoSave(blob, base + "_큐시트.zip");
+    else await downloadSaver().save(base + "_큐시트.zip", blob);
     log(`${result.success}장을 ZIP 하나로 저장했어요` + (result.skipped ? ` (빈 항목 ${result.skipped}개 건너뜀)` : ""));
   }
 
@@ -1244,7 +1245,20 @@
     log(`${result.success}개 썸네일 생성 완료 → "${dirHandle.name}" 폴더` + (result.skipped ? ` (빈 항목 ${result.skipped}개 건너뜀)` : ""));
   }
 
+  // 여러 장을 모아 한 번에 저장: 아이폰은 공유 시트 한 번(사진에 N장 저장), PC는 연속 다운로드
+  function collectSaver(bag) {
+    return { exists: async (n) => bag.some(f => f.name === n + ".png"), save: async (name, blob) => { bag.push({ name, blob }); } };
+  }
+
   async function exportByDownload(list) {
+    if (window.zunoSave) {
+      const bag = [];
+      const result = await generateAllCommon(collectSaver(bag), list);
+      if (!bag.length) { log("저장할 항목이 없어요 (곡제목이 비어 있으면 건너뜀)."); return; }
+      const r = await window.zunoSave(bag);
+      log(r === "cancelled" ? "저장을 취소했어요." : `${result.success}장 저장` + (result.skipped ? ` / 빈 항목 ${result.skipped}개 건너뜀` : ""));
+      return;
+    }
     const result = await generateAllCommon(downloadSaver(), list);
     log(`${result.success}개 다운로드 완료` + (result.skipped ? ` / 빈 항목 ${result.skipped}개 건너뜀` : "") + (result.success > 1 ? ` — 처음 한 번 "여러 파일 다운로드 허용" 확인이 뜨면 허용해주세요.` : ""));
   }
@@ -1558,7 +1572,7 @@
     const data = { app: "cuesheet-maker", version: 1, exportedAt: new Date().toISOString(), show: sh };
     const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
     const name = (sh.name || "공연").replace(/[\/\\:*?"<>|]/g, "_").slice(0, 60) + "_큐시트.json";
-    downloadSaver().save(name, blob);
+    if (window.zunoSave) window.zunoSave(blob, name); else downloadSaver().save(name, blob);
   }
 
   function importShowFile(file) {
