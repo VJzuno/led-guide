@@ -14,7 +14,10 @@ import { loadAll, requestPersist } from './db';
 import { isUnlocked } from './lock';
 import { loadGuideFonts } from './render';
 import { restoreSyncMeta, needsBackup } from './sync';
-import { autoSync } from './gdrive';
+import { autoSync, handleDriveRedirect } from './gdrive';
+
+// 구글 로그인(아이폰 리디렉션)에서 돌아온 경우: 라우터가 주소를 읽기 전에 토큰부터 처리
+handleDriveRedirect();
 import { createSample } from './sample';
 import { Icon, CalcBar } from './ui/common';
 import { Lock } from './ui/Lock';

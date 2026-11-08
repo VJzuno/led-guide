@@ -4,7 +4,8 @@ import { SCHEMA_VERSION, PRESETS, type OutputPreset } from '../types';
 import { saveToICloud, loadFromFile, lastBackupAt, lastLoadAt, changedSinceBackup, needsBackup, ago } from '../sync';
 import { isIOS } from '../export';
 import { createSample } from '../sample';
-import { clientId, clientFromBuild, setClientId, validClientId, isLinked, lastDriveSync, syncDrive, unlinkDrive } from '../gdrive';
+import { useEffect } from 'preact/hooks';
+import { clientId, clientFromBuild, setClientId, validClientId, isLinked, lastDriveSync, syncDrive, unlinkDrive, prepareDrive, useRedirect, redirectUri, resumeAfterRedirect, clearResume, takeDriveError } from '../gdrive';
 import { TopBar, Seg, go, timeAgo } from './common';
 
 declare const __APP_VERSION__: string;
@@ -191,16 +192,24 @@ function DriveCard() {
   const linked = isLinked();
   const changed = changedSinceBackup();
 
-  const sync = async () => {
+  // PC 팝업은 클릭 순간에 바로 열려야 해서 미리 준비. 아이폰 리디렉션에서 돌아왔으면 이어서 동기화
+  useEffect(() => {
+    prepareDrive();
+    const err = takeDriveError();
+    if (err) toast(err);
+    if (resumeAfterRedirect) { clearResume(); sync(false); }
+  }, [id]);
+
+  const sync = async (interactive = true) => {
     setBusy(true);
     try {
-      const r = await syncDrive(true);
+      const r = await syncDrive(interactive);
       const n = r.added + r.updated;
       await notice(r.first
         ? '구글 드라이브에 처음으로 올렸습니다.\n다른 기기(폰·PC)에서 같은 구글 계정으로 "지금 동기화"를 누르면 이 데이터가 합쳐집니다.'
         : `드라이브와 동기화했습니다.\n\n받아서 합친 LED: 새로 ${r.added} · 최신으로 ${r.updated}` + (r.tools.length ? `\n도구: ${r.tools.join(', ')}` : '') +
           (n + r.tools.length === 0 ? '\n\n이 기기가 이미 최신이었고, 변경 사항을 드라이브에 올렸습니다.' : ''));
-    } catch (e: any) { toast(e?.message || String(e)); }
+    } catch (e: any) { if (!e?.redirecting) toast(e?.message || String(e)); else return; }
     setBusy(false);
   };
   const saveId = () => {
@@ -227,6 +236,7 @@ function DriveCard() {
             <li><b>OAuth 동의 화면</b>: 외부 → 앱 이름·이메일 입력 → 범위에 <code>…/auth/drive.appdata</code> 추가 → 테스트 사용자에 본인 구글 계정 추가</li>
             <li><b>사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID</b> → 유형 <b>웹 애플리케이션</b></li>
             <li><b>승인된 JavaScript 원본</b>에 <code>{location.origin}</code> 추가 (PC에서 로컬로도 쓰면 <code>http://localhost:5174</code>도)</li>
+            <li><b>승인된 리디렉션 URI</b>에 <code>{redirectUri()}</code> 추가 (아이폰 로그인용)</li>
             <li>만들어진 <b>클라이언트 ID</b>(…apps.googleusercontent.com)를 위 칸에 붙여넣기. 폰·PC 각각 한 번씩</li>
           </ol>
           <div>클라이언트 ID는 비밀번호가 아니라 공개되는 값이에요. 앱은 드라이브의 <b>앱 전용 숨김 폴더</b>만 쓰고, 다른 파일은 볼 수 없습니다.</div>
@@ -243,10 +253,11 @@ function DriveCard() {
           <div class="small muted">마지막 동기화 <b class="num">{ago(lastDriveSync())}</b>{changed > 0 && <> · 그 뒤로 바뀐 항목 <b class="num" style="color:var(--accent)">{changed}</b></>}</div>
         </div>
       </div>
-      <button class="btn primary big block" disabled={busy || !s.online} onClick={sync}>
+      <button class="btn primary big block" disabled={busy || !s.online} onClick={() => sync(true)}>
         {busy ? '동기화 중…' : linked ? '⇅ 지금 동기화' : 'G  구글 계정 연결 · 동기화'}
       </button>
       {!s.online && <div class="small" style="color:var(--danger)">오프라인이라 동기화할 수 없어요. 작업은 계속 이 기기에 저장됩니다.</div>}
+      {useRedirect() && !linked && <div class="small muted">아이폰은 구글 로그인 페이지로 이동했다가 자동으로 돌아와요. 구글 클라이언트의 <b>승인된 리디렉션 URI</b>에 <code class="mono">{redirectUri()}</code> 가 있어야 합니다.</div>}
       <div class="small muted">받아서 합친 뒤 다시 올립니다. 항목마다 <b>더 최근에 고친 쪽</b>이 남아요. 로그인이 살아 있으면 앱을 열 때도 자동으로 맞춥니다.</div>
       <div class="row wrap">
         {linked && <button class="btn" disabled={busy} onClick={async () => { if (await ask('이 기기에서 구글 드라이브 연결을 해제할까요?\n드라이브의 백업 파일과 이 기기 데이터는 그대로 남습니다.', '해제')) unlinkDrive(); }}>연결 해제</button>}
