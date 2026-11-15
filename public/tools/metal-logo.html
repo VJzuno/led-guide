@@ -93,8 +93,8 @@ main{display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:14px}
     </div>
     <input type="file" id="file" accept="image/*,.png,.svg" hidden>
     <div class="seg" data-key="mask">
-      <button data-v="alpha">알파 기준</button>
-      <button data-v="ainv" aria-pressed="true">알파 반전</button>
+      <button data-v="alpha" aria-pressed="true">알파 기준</button>
+      <button data-v="ainv">알파 반전</button>
       <button data-v="luma">밝은 부분</button>
       <button data-v="inv">어두운 부분</button>
     </div>
@@ -224,7 +224,7 @@ import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const W = 1920, H = 1080, DUR = 10, HALF = 5;
 const $ = id => document.getElementById(id);
-const S = { mask:'ainv', mat:'chrome', env:'studio', dir:1, move:'f', eRot:'inout', eMove:'inout', fps:30, bg:'black' };
+const S = { mask:'alpha', mat:'chrome', env:'studio', dir:1, move:'f', eRot:'inout', eMove:'inout', fps:30, bg:'black' };
 
 /* ---------- renderer ---------- */
 const canvas = $('cv');

@@ -6,7 +6,7 @@ import { isIOS } from '../export';
 import { createSample } from '../sample';
 import { useEffect } from 'preact/hooks';
 import { clientId, clientFromBuild, setClientId, validClientId, isLinked, lastDriveSync, syncDrive, unlinkDrive, prepareDrive, useRedirect, redirectUri, resumeAfterRedirect, clearResume, takeDriveError } from '../gdrive';
-import { TopBar, Seg, go, timeAgo } from './common';
+import { TopBar, AppHeader, Seg, go, timeAgo } from './common';
 
 declare const __APP_VERSION__: string;
 export const VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
@@ -25,8 +25,8 @@ export function Menu({ sub }: { sub?: string }) {
     ['about', 'About', '앱 소개'],
   ];
   return (
-    <div class="screen">
-      <TopBar title="더보기" />
+    <div class="screen has-header">
+      <AppHeader title="더보기" />
       <div class="card">
         {items.map(([k, t, d]) => (
           <a key={k} class="list-item" href={k.startsWith('/') ? `#${k}` : `#/menu/${k}`}>

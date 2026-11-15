@@ -14,7 +14,7 @@ import { loadAll, requestPersist } from './db';
 import { isUnlocked } from './lock';
 import { loadGuideFonts } from './render';
 import { restoreSyncMeta, needsBackup } from './sync';
-import { startAutoSync, handleDriveRedirect, driveNeedsLogin, syncDrive } from './gdrive';
+import { startAutoSync, handleDriveRedirect, isLinked } from './gdrive';
 
 // 구글 로그인(아이폰 리디렉션)에서 돌아온 경우: 라우터가 주소를 읽기 전에 토큰부터 처리
 handleDriveRedirect();
@@ -113,16 +113,9 @@ function App() {
       {page}
       <nav class="tabbar">
         {tabs.map(([k, href, ic, label]) => (
-          <a key={k} href={'#' + href} class={tab === k ? 'on' : ''}><span class="tab-ic"><Icon name={ic} />{k === 'menu' && needsBackup() && <i class="dot" />}</span>{label}</a>
+          <a key={k} href={'#' + href} class={tab === k ? 'on' : ''}><span class="tab-ic"><Icon name={ic} />{k === 'menu' && !isLinked() && needsBackup() && <i class="dot" />}</span>{label}</a>
         ))}
       </nav>
-      {driveNeedsLogin() && !route.startsWith('/menu/backup') && <div class="relink-space" aria-hidden="true" />}
-      {driveNeedsLogin() && !route.startsWith('/menu/backup') && (
-        <div class="relink">
-          <span class="grow small">구글 동기화가 멈췄어요 <span class="muted">(로그인 1시간 만료)</span></span>
-          <button class="btn primary sm-btn" onClick={() => { syncDrive(true).then(() => toast('동기화했습니다')).catch((e) => { if (!e?.redirecting) toast(e?.message || '동기화 실패'); }); }}>다시 연결</button>
-        </div>
-      )}
       {s.updateReady && (
         <div class="banner">
           <div class="grow small"><b>업데이트 있음</b><br /><span class="muted">데이터는 그대로 유지됩니다</span></div>

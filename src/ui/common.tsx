@@ -8,8 +8,33 @@ import { snapPos } from '../layout';
 import { evalExpr, isExpr } from '../calc';
 import type { VideoVariant } from '../video';
 import { MapOverlay } from './ImportMap';
+import { driveNeedsLogin, driveSyncing, isLinked, syncDrive } from '../gdrive';
 
 export const go = (path: string) => { location.hash = '#' + path; };
+
+/** 메인 탭 화면 상단: ZUNO 로고 | 화면 이름 · 오른쪽 상태 알약 (레퍼런스: 진한 상단 띠) */
+export function AppHeader({ title, right }: { title: string; right?: ComponentChildren }) {
+  const s = useStore();
+  return (
+    <header class="app-header">
+      <img class="ah-logo" src={DEFAULT_LOGO_URL} alt="ZUNO" />
+      <span class="ah-div" aria-hidden="true" />
+      <h1 class="ah-title">{title}</h1>
+      <div class="ah-right">{right}<StatusPill online={s.online} /></div>
+    </header>
+  );
+}
+
+/** 연결·동기화 상태. 동기화가 멈췄으면 눌러서 다시 연결 */
+function StatusPill({ online }: { online: boolean }) {
+  const needs = driveNeedsLogin(), syncing = driveSyncing(), linked = isLinked();
+  const [label, cls] = !online ? ['오프라인', 'off'] : needs ? ['다시 연결', 'warn'] : syncing ? ['동기화 중', 'busy'] : linked ? ['동기화됨', ''] : ['온라인', ''];
+  const onClick = () => {
+    if (online && needs) syncDrive(true).then(() => toast('동기화했습니다')).catch((e: any) => { if (!e?.redirecting) toast(e?.message || '동기화 실패'); });
+    else go('/menu/backup');
+  };
+  return <button class={'ah-pill ' + cls} onClick={onClick} aria-label={`상태: ${label}`}><i />{label}</button>;
+}
 
 export function TopBar({ title, sub, back, right }: { title: string; sub?: string; back?: string; right?: ComponentChildren }) {
   return (

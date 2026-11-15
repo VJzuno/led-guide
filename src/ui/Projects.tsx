@@ -4,21 +4,17 @@ import {
   newLed, addLed, duplicateLed, trashLed, toast, ask, getLed,
   bordersOf, addBorder, newBorderSet, duplicateBorder, trashBorder,
 } from '../store';
-import { ago, lastBackupAt, changedSinceBackup, needsBackup } from '../sync';
-import { isLinked, lastDriveSync } from '../gdrive';
 import { inputLayout } from '../layout';
 import { exportPngMany } from '../export';
 import type { GuideKind, Led } from '../types';
-import { TopBar, go, useSelection, timeAgo } from './common';
+import { TopBar, AppHeader, go, useSelection, timeAgo } from './common';
 
 export function Projects() {
   useStore();
   const list = liveProjects();
   return (
-    <div class="screen">
-      <div class="brand-row"><span class="brand">Zuno Workspace</span></div>
-      <TopBar title="프로젝트" right={<button class="btn primary" onClick={() => { const p = createProject(); go(`/project/${p.id}`); }}>+ 새 프로젝트</button>} />
-      <SyncHint />
+    <div class="screen has-header">
+      <AppHeader title="프로젝트" right={<button class="ah-round" aria-label="새 프로젝트" onClick={() => { const p = createProject(); go(`/project/${p.id}`); }}>+</button>} />
       {list.length === 0 && <div class="card empty">프로젝트가 없습니다. <b>+ 새 프로젝트</b>로 시작하세요.</div>}
       <div class="proj-grid">
         {list.map((p) => {
@@ -37,19 +33,6 @@ export function Projects() {
         })}
       </div>
     </div>
-  );
-}
-
-/** 바뀐 게 있고 오래 동기화 안 했으면 작은 안내 */
-function SyncHint() {
-  if (!needsBackup()) return null;
-  return (
-    <a class="card sync-card accent" href="#/menu/backup" style="margin-bottom:12px">
-      <span class="sync-ic">☁︎</span>
-      <div class="grow"><div style="font-weight:600">백업 · 동기화</div>
-        <div class="small muted">{isLinked() ? <>구글 드라이브 {ago(lastDriveSync())}</> : <>마지막 저장 {ago(lastBackupAt())}</>} · 바뀐 항목 <b style="color:var(--accent)">{changedSinceBackup()}</b></div></div>
-      <span class="chip on">{isLinked() ? '동기화' : '저장'}</span>
-    </a>
   );
 }
 
