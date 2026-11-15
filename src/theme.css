@@ -396,23 +396,29 @@ html, body { background: #000; }
 .screen.has-header { padding-top: 0; }
 .app-header { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 12px;
   margin: 0 calc(-1 * (var(--sar) + 16px)) 14px calc(-1 * (var(--sal) + 16px));
-  padding: calc(var(--sat) + 30px) calc(var(--sar) + 16px) 26px calc(var(--sal) + 16px);
+  padding: calc(var(--sat) + 14px) calc(var(--sar) + 16px) 14px calc(var(--sal) + 16px);
   background: linear-gradient(#05040b, rgba(5,4,11,.94)); border-bottom: 1px solid rgba(139,124,199,.14);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-.ah-logo { height: 28px; width: auto; display: block; flex: none; }
-.ah-div { width: 1px; height: 30px; background: rgba(201,194,227,.35); flex: none; }
-.ah-title { margin: 0; flex: 1; min-width: 0; font-family: var(--f-body); font-weight: 700; font-size: 32px; letter-spacing: -.01em; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ah-right { display: flex; align-items: center; gap: 8px; flex: none; }
-.ah-pill { display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(139,124,199,.35);
-  background: rgba(14,11,29,.8); color: #fff; font-size: 13.5px; font-weight: 600; white-space: nowrap; }
-.ah-pill i { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); flex: none; }
+.ah-logo { height: 18px; width: auto; display: block; flex: none; }
+.ah-div { width: 1px; height: 20px; background: rgba(201,194,227,.35); flex: none; }
+.ah-title { margin: 0; flex: 1; min-width: 0; font-family: var(--f-body); font-weight: 700; font-size: 21px; letter-spacing: -.01em; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ah-right { display: flex; align-items: center; gap: 6px; flex: none; }
+.ah-pill { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid rgba(139,124,199,.3);
+  background: rgba(14,11,29,.8); color: var(--text-2); font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.ah-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
 .ah-pill.busy i { background: #8B7CC7; animation: ahpulse 1s infinite alternate; }
 .ah-pill.off i { background: #666; }
 .ah-pill.warn { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 30%, #000); }
 .ah-pill.warn i { background: #FFB020; }
 @keyframes ahpulse { to { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .ah-pill.busy i { animation: none; } }
-.ah-round { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(139,124,199,.35); background: var(--accent); color: #fff; font-size: 24px; line-height: 1; display: grid; place-items: center; padding: 0 0 2px; }
-@media (max-width: 380px) { .ah-title { font-size: 24px; } .ah-logo { height: 22px; } .ah-pill { padding: 0 10px; font-size: 12.5px; } }
+.ah-round { width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; font-size: 20px; line-height: 1; display: grid; place-items: center; padding: 0 0 2px; }
+@media (max-width: 360px) { .ah-title { font-size: 19px; } .ah-logo { height: 16px; } }
 .tool-screen > .app-header { margin: 0; position: relative; }
 .tool-screen:not(.with-bar) { padding-top: 0; }
+
+/* iOS 홈 화면 앱: 페이지가 화면보다 짧으면 레이아웃 높이가 상단 안전영역(다이내믹 아일랜드 59pt)만큼 짧게 잡혀
+   하단바 아래가 비는 문제 → 문서를 항상 화면 + 상단 안전영역 이상으로 */
+html { min-height: calc(100% + env(safe-area-inset-top, 0px)); }
+body { min-height: 100%; }
+.screen { min-height: calc(100dvh + env(safe-area-inset-top, 0px)); }
