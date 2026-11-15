@@ -100,7 +100,7 @@ export async function deliverMany(files: { name: string; blob: Blob }[]) {
   }
   const zip = await makeZip(files);
   const d = new Date(), p = (n: number) => String(n).padStart(2, '0');
-  await deliver(zip, `LGM_${files.length}files_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.zip`);
+  await deliver(zip, `ZUNO_${files.length}files_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}.zip`);
 }
 
 /** 영상 추출: LOOP(링이 계속 퍼짐) / BUILD(하나씩 생기는 버전) */

@@ -102,6 +102,37 @@ export interface Led {
   deletedAt?: number;
 }
 
+/* ---------- 보더 (프로젝트 안) ----------
+ * 보더 묶음(BorderSet) = 캔버스 하나 + 레이어 여러 장. 레이어 하나가 보더 PNG 한 장.
+ * 레이어 안의 창: hole = 영상이 보이는 창, block = 그 영역만 가림 */
+export interface BorderWin { t: 'hole' | 'block'; x: number; y: number; w: number; h: number; b: number; f: number; r: number }
+export interface BorderLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  wins: BorderWin[];
+  dir: 'center' | 'out' | 'in';
+  curve: 'gauss' | 'smooth' | 'linear';
+  /** 캔버스 가장자리에 닿은 변은 페더 없음 */
+  edgeOpen: boolean;
+  mode: 'overlay' | 'matte';
+  color: string;
+  opacity: number;
+  invert: boolean;
+}
+export interface BorderSet {
+  id: string;
+  projectId: string;
+  order: number;
+  name: string;
+  W: number;
+  H: number;
+  layers: BorderLayer[];
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+}
+
 export type GuideKind = 'IN' | 'OUT';
 
 export interface ExportMeta {
@@ -154,6 +185,8 @@ export interface BackupFile {
   settings: Settings;
   projects: Project[];
   leds: Led[];
+  /** 프로젝트 안 보더 묶음 */
+  borders?: BorderSet[];
   /** 앱 안 도구(큐시트·근무일지·Border Maker·3D 로고)의 저장 데이터. 키 → { 값, 마지막 수정 시각 } */
   tools?: Record<string, { value: string; at: number }>;
 }

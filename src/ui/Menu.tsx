@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { ask, notice, useStore, state, getProject, restoreProject, purgeProject, restoreLed, purgeLed, saveSettings, toast } from '../store';
+import { ask, notice, useStore, state, getProject, restoreProject, purgeProject, restoreLed, purgeLed, restoreBorder, purgeBorder, saveSettings, toast } from '../store';
 import { SCHEMA_VERSION, PRESETS, type OutputPreset } from '../types';
 import { saveToICloud, loadFromFile, lastBackupAt, lastLoadAt, changedSinceBackup, needsBackup, ago } from '../sync';
 import { isIOS } from '../export';
@@ -17,17 +17,19 @@ export function Menu({ sub }: { sub?: string }) {
   if (sub === 'backup') return <Backup />;
   if (sub === 'settings') return <Settings />;
   const items: [string, string, string][] = [
-    ['about', 'About', '앱 소개'],
-    ['trash', '휴지통', '삭제한 프로젝트 / LED 복구'],
+    ['/tool/cuesheet', '큐시트 메이커', '곡 번호·제목 썸네일 PNG'],
+    ['/recent', '최근 내보낸 파일', `${state.exportsMeta.length}개`],
+    ['trash', '휴지통', '삭제한 프로젝트 / LED / 보더 복구'],
     ['backup', '백업 · 동기화', needsBackup() ? `바뀐 항목 ${changedSinceBackup()}개 · 동기화 필요` : isLinked() ? `구글 드라이브 ${ago(lastDriveSync())}` : `마지막 저장 ${ago(lastBackupAt())}`],
     ['settings', '설정', '포인트 컬러, 기본 프리셋'],
+    ['about', 'About', '앱 소개'],
   ];
   return (
     <div class="screen">
-      <TopBar title="메뉴" />
+      <TopBar title="더보기" />
       <div class="card">
         {items.map(([k, t, d]) => (
-          <a key={k} class="list-item" href={`#/menu/${k}`}>
+          <a key={k} class="list-item" href={k.startsWith('/') ? `#${k}` : `#/menu/${k}`}>
             <div class="grow"><div style="font-weight:600">{t}</div><div class="small muted">{d}</div></div>
             <span class="muted">›</span>
           </a>
@@ -48,8 +50,8 @@ function About() {
     <div class="screen">
       <TopBar title="About" back="/menu" />
       <div class="card stack">
-        <h3>ZUNO'S LED GUIDE MAKER</h3>
-        <p class="muted" style="margin:0">VJ용 LED 인풋 / 아웃풋 가이드 제작 도구. 프로젝트 → LED → ① 인풋 가이드 → ② 아웃풋 가이드 순서로 작업합니다.</p>
+        <h3>Zuno Workspace</h3>
+        <p class="muted" style="margin:0">VJ 작업 도구 모음. 프로젝트 안에서 LED 가이드(인풋·아웃풋)와 보더를 만들고, 3D 로고 · SPVS 보고서 · 큐시트까지 한 앱에서 씁니다.</p>
         <p class="muted" style="margin:0">모든 데이터는 이 기기 안(IndexedDB)에만 저장되며, 오프라인에서도 입력·수정·PNG 추출이 모두 됩니다. 기기를 바꾸거나 앱을 지우기 전에는 백업 · 복원에서 JSON으로 백업하세요.</p>
       </div>
       <div class="card">
@@ -66,11 +68,13 @@ function Trash() {
   useStore();
   const projects = state.projects.filter((p) => p.deletedAt);
   const leds = state.leds.filter((l) => l.deletedAt && !getProject(l.projectId)?.deletedAt);
-  const empty = projects.length + leds.length === 0;
+  const borders = state.borders.filter((b) => b.deletedAt && !getProject(b.projectId)?.deletedAt);
+  const empty = projects.length + leds.length + borders.length === 0;
   const purgeAll = async () => {
     if (!(await ask('휴지통을 비울까요?\n되돌릴 수 없습니다.', '비우기'))) return;
     for (const p of projects) await purgeProject(p.id);
     for (const l of leds) await purgeLed(l.id);
+    for (const b of borders) await purgeBorder(b.id);
   };
   return (
     <div class="screen">
@@ -97,6 +101,18 @@ function Trash() {
             <button class="btn" onClick={() => { restoreLed(l.id); toast('복구됨'); }}>복구</button>
             <button class="btn icon ghost" style="color:var(--danger)" aria-label="영구 삭제"
               onClick={async () => { if (await ask('영구 삭제할까요?')) purgeLed(l.id); }}>✕</button>
+          </div>
+        ))}
+      </div>}
+      {borders.length > 0 && <div class="section-title">보더</div>}
+      {borders.length > 0 && <div class="card">
+        {borders.map((b) => (
+          <div key={b.id} class="list-item">
+            <div class="grow"><div style="font-weight:600">{b.name}</div>
+              <div class="small muted">{getProject(b.projectId)?.name} · <span class="num">{timeAgo(b.deletedAt!)}</span></div></div>
+            <button class="btn" onClick={() => { restoreBorder(b.id); toast('복구됨'); }}>복구</button>
+            <button class="btn icon ghost" style="color:var(--danger)" aria-label="영구 삭제"
+              onClick={async () => { if (await ask('영구 삭제할까요?')) purgeBorder(b.id); }}>✕</button>
           </div>
         ))}
       </div>}
@@ -154,7 +170,7 @@ function Backup() {
         <button class="btn primary big block" disabled={busy} onClick={save}>☁︎ iCloud에 저장</button>
         <div class="small muted">
           {ios
-            ? <>공유 창에서 <b>"파일에 저장" → iCloud Drive</b>를 고르세요. 처음 한 번 <b>LED Guide</b> 같은 폴더를 만들어 두면 다음부터 그 폴더가 기본으로 열립니다.</>
+            ? <>공유 창에서 <b>"파일에 저장" → iCloud Drive</b>를 고르세요. 처음 한 번 <b>Zuno Workspace</b> 같은 폴더를 만들어 두면 다음부터 그 폴더가 기본으로 열립니다.</>
             : <>Mac에서는 다운로드 폴더에 저장됩니다. Safari <b>설정 → 일반 → 파일 다운로드 위치</b>를 iCloud Drive 폴더로 바꿔두면 바로 아이폰과 공유됩니다.</>}
         </div>
       </div>

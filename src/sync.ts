@@ -30,8 +30,8 @@ const saveSyncMeta = () => setMeta('sync', { last: lastBackupAt(), load: lastLoa
 /** 마지막 저장(또는 드라이브 동기화) 뒤로 바뀐 프로젝트·LED·도구 수 */
 export function changedSinceBackup() {
   const t = Math.max(lastBackupAt(), lsNum(LS_DRIVE));
-  const n = (xs: (Project | Led)[]) => xs.filter((x) => (x.updatedAt || 0) > t).length;
-  return n(state.projects) + n(state.leds) + toolsChangedSince(t);
+  const n = (xs: { updatedAt?: number }[]) => xs.filter((x) => (x.updatedAt || 0) > t).length;
+  return n(state.projects) + n(state.leds) + n(state.borders) + toolsChangedSince(t);
 }
 /** 구글 드라이브 마지막 동기화 시각 (gdrive.ts 가 기록) */
 export const LS_DRIVE = 'zuno.drive.last';
@@ -52,7 +52,7 @@ export async function buildBackup(): Promise<BackupFile> {
   await flush();
   return {
     app: 'zuno-led-guide-maker', schemaVersion: SCHEMA_VERSION, exportedAt: Date.now(),
-    settings: state.settings, projects: state.projects, leds: state.leds, tools: collectTools(),
+    settings: state.settings, projects: state.projects, leds: state.leds, borders: state.borders, tools: collectTools(),
   };
 }
 
@@ -62,7 +62,7 @@ export async function applyBackup(b: BackupFile) {
   const r = await mergeBackup(b);
   const tools = mergeTools(b.tools);
   const d = await loadAll();
-  Object.assign(state, { projects: d.projects, leds: d.leds });
+  Object.assign(state, { projects: d.projects, leds: d.leds, borders: d.borders });
   emit();
   return { ...r, tools };
 }

@@ -1,7 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import {
   SCHEMA_VERSION, DEFAULT_SETTINGS,
-  type Project, type Led, type ExportRecord, type ExportMeta, type Settings, type BackupFile,
+  type Project, type Led, type ExportRecord, type ExportMeta, type Settings, type BackupFile, type BorderSet,
 } from './types';
 
 interface Schema extends DBSchema {
@@ -9,17 +9,22 @@ interface Schema extends DBSchema {
   projects: { key: string; value: Project };
   leds: { key: string; value: Led; indexes: { projectId: string } };
   exports: { key: string; value: ExportRecord; indexes: { createdAt: number } };
+  borders: { key: string; value: BorderSet; indexes: { projectId: string } };
 }
 
 let dbp: Promise<IDBPDatabase<Schema>> | null = null;
 function db() {
   if (!dbp) {
-    dbp = openDB<Schema>('zuno-led', 1, {
-      upgrade(d) {
-        d.createObjectStore('meta', { keyPath: 'key' });
-        d.createObjectStore('projects', { keyPath: 'id' });
-        d.createObjectStore('leds', { keyPath: 'id' }).createIndex('projectId', 'projectId');
-        d.createObjectStore('exports', { keyPath: 'id' }).createIndex('createdAt', 'createdAt');
+    // v2: 프로젝트 안 보더 묶음(borders) 저장소 추가 — 기존 데이터는 그대로
+    dbp = openDB<Schema>('zuno-led', 2, {
+      upgrade(d, oldVersion) {
+        if (oldVersion < 1) {
+          d.createObjectStore('meta', { keyPath: 'key' });
+          d.createObjectStore('projects', { keyPath: 'id' });
+          d.createObjectStore('leds', { keyPath: 'id' }).createIndex('projectId', 'projectId');
+          d.createObjectStore('exports', { keyPath: 'id' }).createIndex('createdAt', 'createdAt');
+        }
+        if (oldVersion < 2) d.createObjectStore('borders', { keyPath: 'id' }).createIndex('projectId', 'projectId');
       },
     });
   }
@@ -93,13 +98,16 @@ export async function loadAll() {
   if (!schema || from !== SCHEMA_VERSION) await d.put('meta', { key: 'schema', version: SCHEMA_VERSION });
   const exportsMeta = await listExportMeta();
   delete (data.settings as any).key;
-  return { projects: data.projects as Project[], leds: data.leds as Led[], settings: data.settings as Settings, exportsMeta, fresh: !schema };
+  const borders = await d.getAll('borders');
+  return { projects: data.projects as Project[], leds: data.leds as Led[], borders, settings: data.settings as Settings, exportsMeta, fresh: !schema };
 }
 
 export async function putProject(p: Project) { await (await db()).put('projects', p); }
 export async function putLed(l: Led) { await (await db()).put('leds', l); }
 export async function deleteProjectHard(id: string) { await (await db()).delete('projects', id); }
 export async function deleteLedHard(id: string) { await (await db()).delete('leds', id); }
+export async function putBorder(b: BorderSet) { await (await db()).put('borders', b); }
+export async function deleteBorderHard(id: string) { await (await db()).delete('borders', id); }
 export async function putSettings(s: Settings) { await (await db()).put('meta', { key: 'settings', ...s }); }
 
 export async function getMeta<T = any>(key: string): Promise<T | undefined> {
@@ -141,9 +149,9 @@ export async function mergeBackup(b: BackupFile) {
   if (b.schemaVersion > SCHEMA_VERSION) throw new Error('더 새 버전 앱에서 만든 백업입니다. 앱을 새로고침해서 업데이트하세요');
   const data = migrate({ projects: b.projects || [], leds: b.leds || [], settings: b.settings || {} }, b.schemaVersion);
   const d = await db();
-  const tx = d.transaction(['projects', 'leds'], 'readwrite');
+  const tx = d.transaction(['projects', 'leds', 'borders'], 'readwrite');
   let added = 0, updated = 0, kept = 0;
-  const merge = async (store: 'projects' | 'leds', items: any[]) => {
+  const merge = async (store: 'projects' | 'leds' | 'borders', items: any[]) => {
     const os = tx.objectStore(store);
     for (const it of items) {
       const cur = await os.get(it.id);
@@ -154,6 +162,7 @@ export async function mergeBackup(b: BackupFile) {
   };
   await merge('projects', data.projects);
   await merge('leds', data.leds);
+  await merge('borders', Array.isArray(b.borders) ? b.borders : []);
   await tx.done;
   return { added, updated, kept };
 }

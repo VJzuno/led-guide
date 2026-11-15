@@ -20,7 +20,7 @@ export function InputGuide({ id }: { id: string }) {
 
   return (
     <div class="screen compact">
-      <TopBar title={`${l.number} ${l.name}`} sub={`${getProject(l.projectId)?.name ?? ''} · ① 인풋 가이드`} back="/projects"
+      <TopBar title={`${l.number} ${l.name}`} sub={`${getProject(l.projectId)?.name ?? ''} · ① 인풋 가이드`} back={`/project/${l.projectId}`}
         right={<button class="btn" onClick={() => go(`/led/${id}/out`)}>② 아웃풋 →</button>} />
 
       {/* 1. 인풋 캔버스 크기 먼저 (Resolume 컴포지션처럼) */}

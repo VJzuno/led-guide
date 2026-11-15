@@ -65,6 +65,8 @@
 })();
 (() => {
   if (!/\/tools\/[^/]*$/.test(location.pathname)) return;
+  // 앱 화면 안(하단바가 있는 iframe)에서는 홈 버튼이 필요 없음
+  try { if (window.self !== window.top) return; } catch (e) { return; }
   const css = `
 .zuno-home{position:fixed;z-index:2147483000;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));
   display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:999px;

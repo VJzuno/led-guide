@@ -2,13 +2,15 @@ import { useEffect, useState } from 'preact/hooks';
 import * as DB from './db';
 import {
   DEFAULT_OPTIONS, DEFAULT_SETTINGS,
-  type Project, type Led, type ExportMeta, type Settings, type Face,
+  type Project, type Led, type ExportMeta, type Settings, type Face, type BorderSet,
 } from './types';
+import { newLayer } from './border';
 
 export interface State {
   ready: boolean;
   projects: Project[];
   leds: Led[];
+  borders: BorderSet[];
   exportsMeta: ExportMeta[];
   settings: Settings;
   online: boolean;
@@ -23,6 +25,7 @@ export const state: State = {
   ready: false,
   projects: [],
   leds: [],
+  borders: [],
   exportsMeta: [],
   settings: { ...DEFAULT_SETTINGS },
   online: typeof navigator !== 'undefined' ? navigator.onLine : true,
@@ -82,6 +85,9 @@ export const ledsOf = (projectId: string) =>
   state.leds.filter((l) => l.projectId === projectId && !l.deletedAt).sort((a, b) => a.order - b.order);
 export const getLed = (id: string) => state.leds.find((l) => l.id === id);
 export const getProject = (id: string) => state.projects.find((p) => p.id === id);
+export const bordersOf = (projectId: string) =>
+  state.borders.filter((b) => b.projectId === projectId && !b.deletedAt).sort((a, b) => a.order - b.order);
+export const getBorder = (id: string) => state.borders.find((b) => b.id === id);
 
 /* ---------- 프로젝트 ---------- */
 export function saveProject(p: Project) {
@@ -116,6 +122,8 @@ export function restoreProject(id: string) {
 }
 export async function purgeProject(id: string) {
   for (const l of state.leds.filter((l) => l.projectId === id)) await DB.deleteLedHard(l.id);
+  for (const b of state.borders.filter((b) => b.projectId === id)) await DB.deleteBorderHard(b.id);
+  state.borders = state.borders.filter((b) => b.projectId !== id);
   await DB.deleteProjectHard(id);
   state.leds = state.leds.filter((l) => l.projectId !== id);
   state.projects = state.projects.filter((p) => p.id !== id);
@@ -127,6 +135,59 @@ export function duplicateProject(id: string) {
   if (!src) return;
   const p = createProject(src.name + ' 복사본');
   for (const l of ledsOf(id)) duplicateLed(l.id, p.id, false);
+  for (const b of bordersOf(id)) duplicateBorder(b.id, p.id, false);
+}
+
+/* ---------- 보더 묶음 ---------- */
+export function newBorderSet(projectId: string, W = 1920, H = 1080): BorderSet {
+  const now = Date.now();
+  const n = bordersOf(projectId).length + 1;
+  return { id: uid(), projectId, order: now, name: '보더 ' + n, W, H, layers: [newLayer(uid(), '레이어 1', W, H)], createdAt: now, updatedAt: now };
+}
+export function addBorder(b: BorderSet) {
+  state.borders = [...state.borders, b];
+  emit();
+  DB.putBorder(b);
+  return b;
+}
+export function saveBorder(b: BorderSet) {
+  b.updatedAt = Date.now();
+  state.borders = state.borders.map((x) => (x.id === b.id ? b : x));
+  emit();
+  schedule('b:' + b.id, () => DB.putBorder(b));
+}
+/** 불변 업데이트: updateBorder(id, b => { b.W = 3840; }) */
+export function updateBorder(id: string, fn: (b: BorderSet) => void) {
+  const b = getBorder(id);
+  if (!b) return;
+  const c = structuredClone(b);
+  fn(c);
+  saveBorder(c);
+}
+export function duplicateBorder(id: string, toProject?: string, rename = true) {
+  const src = getBorder(id);
+  if (!src) return;
+  const now = Date.now();
+  const c: BorderSet = structuredClone(src);
+  c.id = uid();
+  c.projectId = toProject || src.projectId;
+  c.order = rename ? src.order + 0.5 : src.order;
+  if (rename) c.name = src.name + ' 복사본';
+  c.layers = c.layers.map((l) => ({ ...l, id: uid() }));
+  delete c.deletedAt;
+  c.createdAt = now; c.updatedAt = now;
+  return addBorder(c);
+}
+export function trashBorder(id: string) { updateBorder(id, (b) => { b.deletedAt = Date.now(); }); }
+export function restoreBorder(id: string) {
+  updateBorder(id, (b) => { delete b.deletedAt; });
+  const b = getBorder(id);
+  if (b) { const p = getProject(b.projectId); if (p?.deletedAt) restoreProject(p.id); }
+}
+export async function purgeBorder(id: string) {
+  await DB.deleteBorderHard(id);
+  state.borders = state.borders.filter((b) => b.id !== id);
+  emit();
 }
 
 /* ---------- LED ---------- */

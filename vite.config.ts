@@ -17,9 +17,9 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['icons/*.png'],
       manifest: {
-        name: "ZUNO'S LED GUIDE MAKER",
-        short_name: 'LED GUIDE',
-        description: 'VJ LED input/output guide maker',
+        name: 'Zuno Workspace',
+        short_name: 'Zuno Workspace',
+        description: 'VJ workspace: LED guides, borders, 3D logo, SPVS report',
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',

@@ -9,7 +9,7 @@ import '@fontsource/ibm-plex-sans-kr/400.css';
 import '@fontsource/ibm-plex-sans-kr/600.css';
 import './theme.css';
 
-import { state, set, useStore, applyAccent, answer } from './store';
+import { state, set, useStore, applyAccent, answer, createProject, newBorderSet, addBorder, uid } from './store';
 import { loadAll, requestPersist } from './db';
 import { isUnlocked } from './lock';
 import { loadGuideFonts } from './render';
@@ -21,8 +21,9 @@ handleDriveRedirect();
 import { createSample } from './sample';
 import { Icon, CalcBar } from './ui/common';
 import { Lock } from './ui/Lock';
-import { Home } from './ui/Home';
-import { Projects } from './ui/Projects';
+import { Projects, ProjectView } from './ui/Projects';
+import { BorderEditor } from './ui/BorderEditor';
+import { ToolFrame } from './ui/ToolFrame';
 import { InputGuide } from './ui/InputGuide';
 import { OutputGuide } from './ui/OutputGuide';
 import { Recent } from './ui/Recent';
@@ -53,6 +54,29 @@ function useRoute() {
   return h;
 }
 
+/** 예전 따로 쓰던 Border Maker(tools/border-maker.html) 설정을 프로젝트 안 보더 묶음으로 한 번만 옮김 */
+function importOldBorderMaker() {
+  try {
+    if (localStorage.getItem('zuno.borderImported')) return;
+    const raw = localStorage.getItem('borderMaker.v3');
+    localStorage.setItem('zuno.borderImported', '1');
+    if (!raw) return;
+    const o = JSON.parse(raw);
+    if (!o || !Array.isArray(o.wins) || !o.wins.length) return;
+    const p = createProject('이전 Border Maker');
+    const b = newBorderSet(p.id, o.W || 1920, o.H || 1080);
+    b.name = '이전 보더';
+    b.layers = [{
+      id: uid(), name: '레이어 1', visible: true,
+      wins: o.wins.map((w: any) => ({ t: w.t === 'block' ? 'block' : 'hole', x: +w.x || 0, y: +w.y || 0, w: +w.w || 1, h: +w.h || 1, b: +w.b || 0, f: +w.f || 0, r: +w.r || 0 })),
+      dir: ['center', 'out', 'in'].includes(o.dir) ? o.dir : 'center', curve: ['gauss', 'smooth', 'linear'].includes(o.curve) ? o.curve : 'gauss',
+      edgeOpen: o.edgeOpen !== false, mode: o.mode === 'matte' ? 'matte' : 'overlay', color: o.color || '#000000',
+      opacity: typeof o.opacity === 'number' ? o.opacity : 100, invert: !!o.invert,
+    }];
+    addBorder(b);
+  } catch { /* 저장소 차단 등 */ }
+}
+
 function App() {
   const s = useStore();
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
@@ -65,19 +89,23 @@ function App() {
 
   const parts = route.split('/').filter(Boolean);
   let page;
-  let tab = 'home';
-  if (parts[0] === 'projects') { page = <Projects />; tab = 'projects'; }
+  let tab = 'projects';
+  if (parts[0] === 'project' && parts[1]) page = <ProjectView id={parts[1]} key={parts[1]} />;
   else if (parts[0] === 'led' && parts[1]) {
     page = parts[2] === 'out' ? <OutputGuide id={parts[1]} key={parts[1] + 'o'} /> : <InputGuide id={parts[1]} key={parts[1] + 'i'} />;
-    tab = 'projects';
   }
-  else if (parts[0] === 'recent') { page = <Recent />; tab = 'recent'; }
+  else if (parts[0] === 'border' && parts[1]) page = <BorderEditor id={parts[1]} key={parts[1]} />;
+  else if (parts[0] === 'logo') { page = <ToolFrame src="tools/metal-logo.html" title="3D 로고" />; tab = 'logo'; }
+  else if (parts[0] === 'report') { page = <ToolFrame src="tools/worklog.html" title="SPVS 보고서" />; tab = 'report'; }
+  else if (parts[0] === 'tool' && parts[1] === 'cuesheet') { page = <ToolFrame src="tools/cuesheet.html" title="큐시트 메이커" back="/menu" />; tab = 'menu'; }
+  else if (parts[0] === 'recent') { page = <Recent />; tab = 'menu'; }
   else if (parts[0] === 'menu') { page = <Menu sub={parts[1]} />; tab = 'menu'; }
-  else page = <Home />;
+  else page = <Projects />;
 
-  const tabs: [string, string, 'home' | 'folder' | 'clock' | 'menu', string][] = [
-    ['home', '/', 'home', '홈'], ['projects', '/projects', 'folder', '프로젝트'],
-    ['recent', '/recent', 'clock', '최근'], ['menu', '/menu', 'menu', '메뉴'],
+  // 하단바: 프로젝트(LED 메이커·보더) / 3D 로고 / SPVS 보고서 / 더보기
+  const tabs: [string, string, 'folder' | 'cube' | 'doc' | 'more', string][] = [
+    ['projects', '/projects', 'folder', '프로젝트'], ['logo', '/logo', 'cube', '3D 로고'],
+    ['report', '/report', 'doc', 'SPVS 보고서'], ['menu', '/menu', 'more', '더보기'],
   ];
 
   return (
@@ -124,12 +152,13 @@ function App() {
 async function boot() {
   try {
     const d = await loadAll();
-    Object.assign(state, { projects: d.projects, leds: d.leds, settings: d.settings, exportsMeta: d.exportsMeta });
+    Object.assign(state, { projects: d.projects, leds: d.leds, borders: d.borders, settings: d.settings, exportsMeta: d.exportsMeta });
     applyAccent();
     // 첫 실행: 샘플 프로젝트 1개
     if (d.fresh && d.projects.length === 0) createSample();
     requestPersist();
     await restoreSyncMeta();
+    importOldBorderMaker();
   } catch (e) {
     console.error(e);
     alert('저장소를 열 수 없습니다. 개인정보 보호 모드인지 확인하세요.');

@@ -33,7 +33,7 @@ export function Recent() {
 
   return (
     <div class={'screen' + (S.mode ? ' selecting' : '')}>
-      <TopBar title="최근" sub={`내보낸 파일 ${s.exportsMeta.length}개`} right={
+      <TopBar title="최근 내보낸 파일" back="/menu" sub={`내보낸 파일 ${s.exportsMeta.length}개`} right={
         S.mode ? <button class="btn" onClick={S.exit}>완료</button>
           : list.length > 0 && <button class="btn ghost" onClick={() => S.setMode(true)}>선택</button>
       } />

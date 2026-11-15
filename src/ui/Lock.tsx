@@ -27,7 +27,7 @@ export function Lock({ onUnlock }: { onUnlock: () => void }) {
 
   return (
     <form class="lock" onSubmit={submit}>
-      <div class="hero-title">ZUNO'S<br />LED GUIDE<br /><em>MAKER</em></div>
+      <div class="hero-title">Zuno<br /><em>Workspace</em></div>
       <input class="input" type="password" autoFocus placeholder="비밀번호" value={pw} autoComplete="current-password"
         disabled={wait > 0} onInput={(e) => setPw((e.target as HTMLInputElement).value)} />
       <button class="btn primary big block" style="margin-top:12px" disabled={wait > 0 || busy || !pw}>

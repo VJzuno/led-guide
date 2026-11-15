@@ -475,12 +475,15 @@ export function Viewer({ src, onClose }: { src: string; onClose: () => void }) {
   );
 }
 
-export function Icon({ name }: { name: 'home' | 'folder' | 'clock' | 'menu' }) {
+export function Icon({ name }: { name: 'home' | 'folder' | 'clock' | 'menu' | 'cube' | 'doc' | 'more' }) {
   const p: Record<string, string> = {
     home: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
     folder: 'M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z',
     clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
     menu: 'M4 7h16M4 12h16M4 17h16',
+    cube: 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5',
+    doc: 'M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v5h5M9 13h6M9 17h6',
+    more: 'M5 12h.01M12 12h.01M19 12h.01',
   };
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={p[name]} /></svg>;
 }
