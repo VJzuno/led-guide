@@ -5,6 +5,7 @@ import { saveToICloud, loadFromFile, lastBackupAt, lastLoadAt, changedSinceBacku
 import { isIOS } from '../export';
 import { createSample } from '../sample';
 import { useEffect } from 'preact/hooks';
+import { onFirebaseHost, cloudUser, cloudStatus, cloudError, cloudLastSync, cloudSignIn, cloudSignOut, NEW_URL } from '../cloud';
 import { clientId, clientFromBuild, setClientId, validClientId, isLinked, lastDriveSync, syncDrive, unlinkDrive, prepareDrive, useRedirect, redirectUri, resumeAfterRedirect, clearResume, takeDriveError } from '../gdrive';
 import { TopBar, AppHeader, Seg, go, timeAgo } from './common';
 
@@ -156,7 +157,7 @@ function Backup() {
     <div class="screen">
       <TopBar title="백업 · 동기화" back="/menu" />
 
-      <DriveCard />
+      {onFirebaseHost() ? <CloudCard /> : <><MoveCard /><DriveCard /></>}
 
       <div class="section-title">iCloud 파일 백업</div>
 
@@ -181,7 +182,7 @@ function Backup() {
         <label class={'btn big block' + (busy ? ' disabled' : '')}>☁︎ iCloud에서 불러오기
           <input type="file" accept="application/json,.json" style="display:none" disabled={busy} onChange={load} />
         </label>
-        <div class="small muted">iCloud Drive에서 가장 최근 <code>LGM-backup_…json</code> 파일을 고르세요. <b>항목마다 더 최근에 고친 쪽이 남습니다.</b> 이 기기에서 더 나중에 고친 건 덮어쓰지 않아요.</div>
+        <div class="small muted">iCloud Drive에서 가장 최근 <code>ZUNO-backup_…json (예전 파일 LGM-backup_…도 돼요)</code> 파일을 고르세요. <b>항목마다 더 최근에 고친 쪽이 남습니다.</b> 이 기기에서 더 나중에 고친 건 덮어쓰지 않아요.</div>
       </div>
 
       <div class="card stack">
@@ -197,6 +198,60 @@ function Backup() {
   );
 }
 
+
+/** 클라우드 동기화 (Firebase): 구글 로그인 한 번 → 실시간으로 폰·PC 맞춤 */
+function CloudCard() {
+  const s = useStore();
+  const [busy, setBusy] = useState(false);
+  const u = cloudUser(), st = cloudStatus();
+  const login = async () => {
+    setBusy(true);
+    try { await cloudSignIn(); } catch (e: any) { toast(e?.message || '로그인 실패'); }
+    setBusy(false);
+  };
+  if (!u) return (
+    <div class="card stack accent">
+      <div style="font-weight:600">클라우드 동기화</div>
+      <div class="small muted">Google 계정으로 로그인하면 폰·PC가 <b>실시간으로</b> 맞춰져요. 한 번 로그인하면 계속 유지돼요. LED·보더·프로젝트와 3D 로고·SPVS 보고서·큐시트 데이터가 모두 들어가요.</div>
+      <button class="btn primary big block" disabled={busy || !s.online} onClick={login}>{busy ? '로그인 중…' : 'G  Google로 로그인'}</button>
+      {!s.online && <div class="small" style="color:var(--danger)">오프라인이에요. 인터넷에 연결된 뒤 로그인하세요.</div>}
+    </div>
+  );
+  const line = !s.online ? '오프라인 · 바뀐 내용은 이 기기에 모아 뒀다가 연결되면 올려요'
+    : st === 'syncing' || st === 'connecting' ? '동기화 중…'
+    : st === 'error' ? '오류: ' + cloudError()
+    : `동기화됨 · ${ago(cloudLastSync())}`;
+  return (
+    <div class="card stack">
+      <div class="row">
+        <div class="grow">
+          <div style="font-weight:600">클라우드 동기화 <span class="chip on" style="min-height:24px;margin-left:6px">켜짐</span></div>
+          <div class="small muted" style="word-break:break-all">{u.email}</div>
+        </div>
+      </div>
+      <div class="small" style={st === 'error' ? 'color:var(--danger)' : 'color:var(--text-2)'}>{line}</div>
+      <div class="small muted">고치면 바로 올라가고, 다른 기기에서 바꾼 것도 바로 들어와요. 항목마다 <b>더 최근에 고친 쪽</b>이 남아요.</div>
+      <button class="btn" onClick={async () => { if (await ask('로그아웃할까요?\n이 기기의 데이터는 그대로 남고, 동기화만 멈춰요.', '로그아웃')) cloudSignOut(); }}>로그아웃</button>
+    </div>
+  );
+}
+
+/** 예전 주소(GitHub Pages)에서: 새 주소로 옮기는 안내 */
+function MoveCard() {
+  return (
+    <div class="card stack accent">
+      <div style="font-weight:600">앱이 새 주소로 옮겼어요</div>
+      <div class="small muted">새 주소에서는 커플앱처럼 <b>실시간 동기화</b>가 되고 로그인이 계속 유지돼요.</div>
+      <div class="small muted" style="line-height:1.7">
+        1. 아래 <b>iCloud에 저장</b>으로 이 기기 데이터를 백업 파일로 저장<br />
+        2. <b>새 주소 열기</b> → 홈 화면에 추가 (예전 아이콘은 지워도 돼요)<br />
+        3. 새 앱 → 더보기 → 백업 · 동기화 → <b>iCloud에서 불러오기</b>로 그 파일 선택<br />
+        4. 새 앱에서 <b>Google로 로그인</b> → 다른 기기도 같은 계정으로 로그인
+      </div>
+      <a class="btn primary big block" href={NEW_URL} target="_blank" rel="noopener" style="text-decoration:none;display:grid;place-items:center">새 주소 열기 · zuno-workspace.web.app</a>
+    </div>
+  );
+}
 
 /** 구글 드라이브: 클라이언트 ID 설정 → 계정 연결 → 지금 동기화 */
 function DriveCard() {

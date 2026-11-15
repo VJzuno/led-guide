@@ -279,6 +279,27 @@ export async function purgeLed(id: string) {
   emit();
 }
 
+/* ---------- 클라우드에서 받은 변경 (다시 올리지 않음) ---------- */
+type Kind = 'projects' | 'leds' | 'borders';
+const putFn = { projects: DB.putProject, leds: DB.putLed, borders: DB.putBorder } as Record<Kind, (x: any) => Promise<void>>;
+const delFn = { projects: DB.deleteProjectHard, leds: DB.deleteLedHard, borders: DB.deleteBorderHard } as Record<Kind, (id: string) => Promise<void>>;
+/** 받은 항목이 이 기기 것보다 새로우면 반영. 반영했으면 true */
+export function applyRemote(kind: Kind, item: any): boolean {
+  const list = state[kind] as any[];
+  const cur = list.find((x) => x.id === item.id);
+  if (cur && (cur.updatedAt || 0) >= (item.updatedAt || 0)) return false;
+  (state as any)[kind] = cur ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item];
+  putFn[kind](item);
+  return true;
+}
+export function removeRemote(kind: Kind, id: string): boolean {
+  const list = state[kind] as any[];
+  if (!list.some((x) => x.id === id)) return false;
+  (state as any)[kind] = list.filter((x) => x.id !== id);
+  delFn[kind](id);
+  return true;
+}
+
 /* ---------- 설정 ---------- */
 export function saveSettings(patch: Partial<Settings>) {
   state.settings = { ...state.settings, ...patch };

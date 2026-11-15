@@ -15,6 +15,7 @@ import { isUnlocked } from './lock';
 import { loadGuideFonts } from './render';
 import { restoreSyncMeta, needsBackup } from './sync';
 import { startAutoSync, handleDriveRedirect, isLinked } from './gdrive';
+import { startCloud, onFirebaseHost } from './cloud';
 
 // 구글 로그인(아이폰 리디렉션)에서 돌아온 경우: 라우터가 주소를 읽기 전에 토큰부터 처리
 handleDriveRedirect();
@@ -113,7 +114,7 @@ function App() {
       {page}
       <nav class="tabbar">
         {tabs.map(([k, href, ic, label]) => (
-          <a key={k} href={'#' + href} class={tab === k ? 'on' : ''}><span class="tab-ic"><Icon name={ic} />{k === 'menu' && !isLinked() && needsBackup() && <i class="dot" />}</span>{label}</a>
+          <a key={k} href={'#' + href} class={tab === k ? 'on' : ''}><span class="tab-ic"><Icon name={ic} />{k === 'menu' && !onFirebaseHost() && !isLinked() && needsBackup() && <i class="dot" />}</span>{label}</a>
         ))}
       </nav>
       {s.updateReady && (
@@ -165,8 +166,8 @@ async function boot() {
   }
   set({ ready: true });
   loadGuideFonts().then(() => set({ fontsReady: state.fontsReady + 1 }));
-  // 구글 드라이브: 온라인이면 바뀔 때마다 올리고, 30초마다 다른 기기 변경 확인
-  startAutoSync();
+  // 새 주소(Firebase): 실시간 클라우드 동기화. 예전 주소(GitHub Pages)에선 이전용으로 드라이브 동기화만 유지
+  if (onFirebaseHost()) startCloud(); else startAutoSync();
 }
 
 render(<App />, document.getElementById('app')!);

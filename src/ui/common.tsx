@@ -8,7 +8,7 @@ import { snapPos } from '../layout';
 import { evalExpr, isExpr } from '../calc';
 import type { VideoVariant } from '../video';
 import { MapOverlay } from './ImportMap';
-import { driveNeedsLogin, driveSyncing, isLinked, syncDrive } from '../gdrive';
+import { onFirebaseHost, cloudStatus, cloudUser } from '../cloud';
 
 export const go = (path: string) => { location.hash = '#' + path; };
 
@@ -27,13 +27,13 @@ export function AppHeader({ title, right }: { title: string; right?: ComponentCh
 
 /** 연결·동기화 상태. 동기화가 멈췄으면 눌러서 다시 연결 */
 function StatusPill({ online }: { online: boolean }) {
-  const needs = driveNeedsLogin(), syncing = driveSyncing(), linked = isLinked();
-  const [label, cls] = !online ? ['오프라인', 'off'] : needs ? ['다시 연결', 'warn'] : syncing ? ['동기화 중', 'busy'] : linked ? ['동기화됨', ''] : ['온라인', ''];
-  const onClick = () => {
-    if (online && needs) syncDrive(true).then(() => toast('동기화했습니다')).catch((e: any) => { if (!e?.redirecting) toast(e?.message || '동기화 실패'); });
-    else go('/menu/backup');
-  };
-  return <button class={'ah-pill ' + cls} onClick={onClick} aria-label={`상태: ${label}`}><i />{label}</button>;
+  if (onFirebaseHost()) {
+    const st = cloudStatus(), u = cloudUser();
+    const [label, cls] = !online ? ['오프라인', 'off'] : !u ? ['로그인', 'warn'] : st === 'syncing' || st === 'connecting' ? ['동기화 중', 'busy'] : st === 'error' ? ['동기화 오류', 'warn'] : ['동기화됨', ''];
+    return <button class={'ah-pill ' + cls} onClick={() => go('/menu/backup')} aria-label={`상태: ${label}`}><i />{label}</button>;
+  }
+  if (!online) return <button class="ah-pill off" onClick={() => go('/menu/backup')}><i />오프라인</button>;
+  return <button class="ah-pill warn" onClick={() => go('/menu/backup')} aria-label="새 주소로 옮기기"><i />새 주소로</button>;
 }
 
 export function TopBar({ title, sub, back, right }: { title: string; sub?: string; back?: string; right?: ComponentChildren }) {

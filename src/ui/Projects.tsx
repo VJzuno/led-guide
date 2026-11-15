@@ -8,6 +8,7 @@ import { inputLayout } from '../layout';
 import { exportPngMany } from '../export';
 import type { GuideKind, Led } from '../types';
 import { TopBar, AppHeader, go, useSelection, timeAgo } from './common';
+import { onFirebaseHost } from '../cloud';
 
 export function Projects() {
   useStore();
@@ -15,6 +16,13 @@ export function Projects() {
   return (
     <div class="screen has-header">
       <AppHeader title="프로젝트" right={<button class="ah-round" aria-label="새 프로젝트" onClick={() => { const p = createProject(); go(`/project/${p.id}`); }}>+</button>} />
+      {!onFirebaseHost() && (
+        <a class="card sync-card accent" href="#/menu/backup" style="margin:0 0 12px">
+          <span class="sync-ic">→</span>
+          <div class="grow"><div style="font-weight:600">새 주소로 옮겨 주세요</div><div class="small muted">zuno-workspace.web.app · 실시간 동기화</div></div>
+          <span class="chip on">방법</span>
+        </a>
+      )}
       {list.length === 0 && <div class="card empty">프로젝트가 없습니다. <b>+ 새 프로젝트</b>로 시작하세요.</div>}
       <div class="proj-grid">
         {list.map((p) => {

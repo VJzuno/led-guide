@@ -70,7 +70,7 @@ export async function applyBackup(b: BackupFile) {
 /** iCloud에 저장. 저장 창을 닫으면(취소) false */
 export async function saveToICloud(): Promise<boolean> {
   const b = await buildBackup();
-  const name = `LGM-backup_${stamp()}_${deviceName()}.json`;
+  const name = `ZUNO-backup_${stamp()}_${deviceName()}.json`;
   const blob = new Blob([JSON.stringify(b)], { type: 'application/json' });
   const file = new File([blob], name, { type: 'application/json' });
   let done = false;
