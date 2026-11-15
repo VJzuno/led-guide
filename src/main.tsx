@@ -9,12 +9,12 @@ import '@fontsource/ibm-plex-sans-kr/400.css';
 import '@fontsource/ibm-plex-sans-kr/600.css';
 import './theme.css';
 
-import { state, set, useStore, applyAccent, answer, createProject, newBorderSet, addBorder, uid } from './store';
+import { state, set, useStore, applyAccent, answer, createProject, newBorderSet, addBorder, uid, toast } from './store';
 import { loadAll, requestPersist } from './db';
 import { isUnlocked } from './lock';
 import { loadGuideFonts } from './render';
 import { restoreSyncMeta, needsBackup } from './sync';
-import { autoSync, handleDriveRedirect } from './gdrive';
+import { startAutoSync, handleDriveRedirect, driveNeedsLogin, syncDrive } from './gdrive';
 
 // 구글 로그인(아이폰 리디렉션)에서 돌아온 경우: 라우터가 주소를 읽기 전에 토큰부터 처리
 handleDriveRedirect();
@@ -116,6 +116,13 @@ function App() {
           <a key={k} href={'#' + href} class={tab === k ? 'on' : ''}><span class="tab-ic"><Icon name={ic} />{k === 'menu' && needsBackup() && <i class="dot" />}</span>{label}</a>
         ))}
       </nav>
+      {driveNeedsLogin() && !route.startsWith('/menu/backup') && <div class="relink-space" aria-hidden="true" />}
+      {driveNeedsLogin() && !route.startsWith('/menu/backup') && (
+        <div class="relink">
+          <span class="grow small">구글 동기화가 멈췄어요 <span class="muted">(로그인 1시간 만료)</span></span>
+          <button class="btn primary sm-btn" onClick={() => { syncDrive(true).then(() => toast('동기화했습니다')).catch((e) => { if (!e?.redirecting) toast(e?.message || '동기화 실패'); }); }}>다시 연결</button>
+        </div>
+      )}
       {s.updateReady && (
         <div class="banner">
           <div class="grow small"><b>업데이트 있음</b><br /><span class="muted">데이터는 그대로 유지됩니다</span></div>
@@ -165,10 +172,8 @@ async function boot() {
   }
   set({ ready: true });
   loadGuideFonts().then(() => set({ fontsReady: state.fontsReady + 1 }));
-  // 구글 드라이브: 로그인이 살아 있으면 열 때·다시 볼 때·온라인 될 때 조용히 동기화
-  autoSync();
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) autoSync(); });
-  addEventListener('online', () => autoSync());
+  // 구글 드라이브: 온라인이면 바뀔 때마다 올리고, 30초마다 다른 기기 변경 확인
+  startAutoSync();
 }
 
 render(<App />, document.getElementById('app')!);

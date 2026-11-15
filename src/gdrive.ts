@@ -5,8 +5,8 @@
  * - 동기화 = 드라이브에서 받아 합치기 → 합친 결과를 다시 올리기 (항목별 최신 우선)
  * - OAuth 클라이언트 ID는 공개값(비밀 아님). 빌드 시 VITE_GOOGLE_CLIENT_ID 또는 앱 설정에서 입력 */
 import type { BackupFile } from './types';
-import { buildBackup, applyBackup, LS_DRIVE } from './sync';
-import { emit } from './store';
+import { buildBackup, applyBackup, LS_DRIVE, changedSinceBackup } from './sync';
+import { emit, localChange } from './store';
 
 const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 const FILE_NAME = 'zuno-backup.json';
@@ -178,37 +178,92 @@ async function download(token: string, id: string): Promise<BackupFile> {
   return r.json();
 }
 
+const LS_REMOTE = 'zuno.drive.remoteMod';
 async function upload(token: string, b: BackupFile, id?: string) {
   const body = JSON.stringify(b);
   if (id) {
-    await api(token, `https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
+    const r = await api(token, `https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media&fields=id,modifiedTime`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body,
     });
+    try { lsSet(LS_REMOTE, (await r.json()).modifiedTime || ''); } catch { /* ignore */ }
     return;
   }
   const boundary = 'zuno' + Math.random().toString(36).slice(2);
   const meta = JSON.stringify({ name: FILE_NAME, parents: ['appDataFolder'], mimeType: 'application/json' });
   const multipart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${boundary}--`;
-  await api(token, 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+  const r = await api(token, 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime', {
     method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body: multipart,
   });
+  try { lsSet(LS_REMOTE, (await r.json()).modifiedTime || ''); } catch { /* ignore */ }
 }
 
 export interface DriveResult { added: number; updated: number; kept: number; tools: string[]; first: boolean; remoteAt: number }
 
-/** 앱을 열거나 다시 볼 때: 로그인 토큰이 아직 살아 있으면 조용히 동기화 (팝업 없음, 2분에 한 번) */
-let autoAt = 0, autoBusy = false;
-export async function autoSync() {
-  if (autoBusy || resumeAfterRedirect || !isLinked() || !clientId() || !navigator.onLine || !cachedToken()) return;
-  if (Date.now() - autoAt < 120_000) return;
-  autoAt = Date.now(); autoBusy = true;
-  try { await syncDrive(false); } catch { /* 다음에 버튼으로 */ } finally { autoBusy = false; }
+/* ---------- 온라인일 때 자동 동기화 ----------
+ * - 이 기기에서 바뀌면(LED·보더·프로젝트·도구) 4초 뒤 올림
+ * - 앱이 열려 있고 온라인이면 30초마다 드라이브 파일의 수정 시각만 확인 → 다른 기기가 바꿨으면 받아서 합침
+ * - 앱 열 때 · 다시 볼 때 · 온라인 될 때 바로 한 번
+ * - 로그인 토큰(약 1시간)이 만료되면 자동으로는 다시 로그인할 수 없음 → driveNeedsLogin() 이 true, 화면에 "다시 연결" */
+const canAuto = () => isLinked() && !!clientId() && navigator.onLine && !resumeAfterRedirect;
+/** 연결은 돼 있는데 로그인이 만료돼서 자동 동기화가 멈춘 상태 */
+export const driveNeedsLogin = () => isLinked() && !!clientId() && navigator.onLine && !cachedToken();
+export const driveSyncing = () => !!inflight;
+
+let pushTimer: number | undefined;
+function markDirty() {
+  if (!canAuto()) return;
+  clearTimeout(pushTimer);
+  pushTimer = window.setTimeout(() => autoTick(true), 4000);
 }
 
+let lastTick = 0;
+async function autoTick(push: boolean) {
+  if (!canAuto() || inflight) return;
+  if (!cachedToken()) { emit(); return; } // "다시 연결" 표시
+  if (!push && Date.now() - lastTick < 10_000) return;
+  lastTick = Date.now();
+  try {
+    if (!push) {
+      // 확인만: 드라이브 파일이 그대로고 이 기기도 바뀐 게 없으면 아무것도 안 함
+      const f = await findFile(cachedToken());
+      const remoteChanged = f && f.modifiedTime !== lsGet(LS_REMOTE);
+      if (!remoteChanged && !(changedSinceBackup() > 0) && f) return;
+    }
+    await syncDrive(false);
+  } catch { emit(); /* 만료면 다시 연결 표시, 그 밖엔 다음 주기에 */ }
+}
+
+let started = false;
+/** 앱 시작 때 한 번 호출 */
+export function startAutoSync() {
+  if (started) return;
+  started = true;
+  localChange.add(markDirty);
+  // 도구 화면(iframe)에서 저장하면 같은 출처라 storage 이벤트가 옴 (hub.js 가 남기는 수정 시각 키)
+  addEventListener('storage', (e) => { if (e.key && e.key.startsWith('zuno.toolstamp.')) markDirty(); });
+  addEventListener('online', () => autoTick(false));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) autoTick(false); });
+  setInterval(() => { if (!document.hidden) autoTick(false); }, 30_000);
+  autoTick(false);
+}
+/** (예전 이름 유지) */
+export const autoSync = () => autoTick(false);
+
+let inflight: Promise<DriveResult> | null = null;
 /** 지금 동기화: 받기 → 합치기 → 올리기 */
 export async function syncDrive(interactive = true): Promise<DriveResult> {
   if (!navigator.onLine) throw new Error('오프라인이에요. 인터넷에 연결된 뒤 다시 눌러 주세요.');
-  const token = await getToken(interactive); // await 전에 팝업/이동이 시작됨
+  const tokenP = getToken(interactive); // await 전에 팝업/이동이 시작됨 (클릭 순간)
+  tokenP.catch(() => {}); // 실패는 아래 syncWith 에서 다시 받음
+  if (inflight) { await inflight.catch(() => {}); }
+  const p = syncWith(tokenP);
+  inflight = p;
+  emit();
+  try { return await p; } finally { if (inflight === p) inflight = null; emit(); }
+}
+
+async function syncWith(tokenP: Promise<string>): Promise<DriveResult> {
+  const token = await tokenP;
   const run = async () => {
     const f = await findFile(token);
     let res: DriveResult = { added: 0, updated: 0, kept: 0, tools: [], first: !f, remoteAt: 0 };

@@ -54,9 +54,13 @@ export const uid = () =>
   (crypto as any).randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 /* ---------- 자동 저장 (디바운스) ---------- */
+/** 이 기기에서 데이터가 바뀔 때 알림 (구글 드라이브 자동 동기화가 구독) */
+export const localChange = new Set<() => void>();
+const changed = () => localChange.forEach((f) => { try { f(); } catch { /* ignore */ } });
 const pending = new Map<string, () => Promise<void>>();
 let timer: number | undefined;
 function schedule(key: string, fn: () => Promise<void>) {
+  changed();
   pending.set(key, fn);
   clearTimeout(timer);
   timer = window.setTimeout(flush, 250);
@@ -104,6 +108,7 @@ export function createProject(name = '새 프로젝트'): Project {
   state.projects = [...state.projects, p];
   emit();
   DB.putProject(p);
+  changed();
   return p;
 }
 
@@ -148,6 +153,7 @@ export function addBorder(b: BorderSet) {
   state.borders = [...state.borders, b];
   emit();
   DB.putBorder(b);
+  changed();
   return b;
 }
 export function saveBorder(b: BorderSet) {
@@ -224,6 +230,7 @@ export function addLed(l: Led) {
   state.leds = [...state.leds, l];
   emit();
   DB.putLed(l);
+  changed();
   return l;
 }
 

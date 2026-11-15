@@ -374,3 +374,10 @@ label.btn.disabled { opacity: .35; pointer-events: none; }
 @media (max-width: 520px) { .layer-row { grid-template-columns: 36px minmax(0, 1fr) auto; } .layer-row .lmeta { display: none; } }
 .chip.block-chip { border-color: color-mix(in srgb, var(--danger) 60%, var(--line)); }
 .color-in { width: 52px; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: #000; padding: 2px; }
+
+/* ---------- 구글 다시 연결 바 ---------- */
+.relink { position: fixed; left: calc(var(--sal) + 10px); right: calc(var(--sar) + 10px); bottom: calc(var(--tab-h) + var(--sab) + 10px); z-index: 70;
+  display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 14px; background: rgba(14,11,29,.96); border: 1px solid var(--accent);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+.relink .sm-btn { margin: 0; min-height: 38px; }
+.relink-space { height: 64px; }

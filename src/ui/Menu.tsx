@@ -274,7 +274,7 @@ function DriveCard() {
       </button>
       {!s.online && <div class="small" style="color:var(--danger)">오프라인이라 동기화할 수 없어요. 작업은 계속 이 기기에 저장됩니다.</div>}
       {useRedirect() && !linked && <div class="small muted">아이폰은 구글 로그인 페이지로 이동했다가 자동으로 돌아와요. 구글 클라이언트의 <b>승인된 리디렉션 URI</b>에 <code class="mono">{redirectUri()}</code> 가 있어야 합니다.</div>}
-      <div class="small muted">받아서 합친 뒤 다시 올립니다. 항목마다 <b>더 최근에 고친 쪽</b>이 남아요. 로그인이 살아 있으면 앱을 열 때도 자동으로 맞춥니다.</div>
+      <div class="small muted"><b>온라인이면 자동</b>: 고치면 몇 초 뒤 올리고, 앱이 열려 있으면 30초마다 다른 기기 변경을 받아요. 항목마다 <b>더 최근에 고친 쪽</b>이 남아요. 구글 로그인은 약 1시간마다 만료돼서, 그때 뜨는 <b>다시 연결</b>을 한 번 누르면 이어서 자동으로 맞춰요.</div>
       <div class="row wrap">
         {linked && <button class="btn" disabled={busy} onClick={async () => { if (await ask('이 기기에서 구글 드라이브 연결을 해제할까요?\n드라이브의 백업 파일과 이 기기 데이터는 그대로 남습니다.', '해제')) unlinkDrive(); }}>연결 해제</button>}
         {!clientFromBuild() && <button class="btn ghost" onClick={() => setEditId(true)}>클라이언트 ID 바꾸기</button>}
