@@ -436,3 +436,125 @@ body { min-height: 100%; }
 .add-show { margin-bottom: 8px; }
 .follow-row { margin-bottom: 10px; }
 .chip.accent-chip { border-color: var(--accent); color: #c9b3ff; }
+
+/* ======================================================================
+ * 뉴모피즘 (다크): 면과 배경이 같은 색, 빛(왼쪽 위)과 그림자(오른쪽 아래)로만 입체감
+ *  - 올라온 면(raised): 카드·버튼·칩      - 들어간 면(inset): 입력·세그먼트·토글·태그·선택됨
+ *  - 포인트는 #5613C8 하나만. 테두리선은 거의 없앰
+ * ====================================================================== */
+:root {
+  --bg: #15131b;
+  --bg-1: #15131b;
+  --nm-hi: rgba(255, 255, 255, .06);   /* 빛 받는 쪽 */
+  --nm-lo: rgba(0, 0, 0, .7);          /* 그림자 쪽 */
+  --nm-edge: rgba(255, 255, 255, .035); /* 아주 얇은 윗변 하이라이트 */
+  --raise: 6px 6px 14px var(--nm-lo), -5px -5px 12px var(--nm-hi), inset 0 1px 0 var(--nm-edge);
+  --raise-sm: 3px 3px 7px var(--nm-lo), -3px -3px 6px var(--nm-hi), inset 0 1px 0 var(--nm-edge);
+  --press: inset 3px 3px 7px var(--nm-lo), inset -3px -3px 6px var(--nm-hi);
+  --press-sm: inset 2px 2px 4px var(--nm-lo), inset -2px -2px 4px var(--nm-hi);
+  --glow: 0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent);
+  --sep: rgba(255, 255, 255, .05);
+}
+html, body { background: var(--bg); }
+body::before { background: radial-gradient(80% 45% at 10% 0%, rgba(86,19,200,.16) 0%, transparent 70%), var(--bg); }
+
+/* 올라온 면 */
+.card, details.sec, .modal-box, .proj-card, .show-card {
+  background: var(--bg); border: 0; box-shadow: var(--raise); border-radius: 20px;
+}
+.card { padding: 16px; }
+.card + .card { margin-top: 16px; }
+.card.accent { box-shadow: var(--raise), inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent); }
+.sec-body > .card { box-shadow: none; }
+.proj-grid { gap: 16px; }
+
+.btn {
+  border: 0; background: var(--bg); box-shadow: var(--raise-sm); border-radius: 14px; color: var(--text-2);
+  transition: box-shadow .15s, transform .15s, color .15s;
+}
+.btn:hover { color: #fff; }
+.btn:active { transform: none; opacity: 1; box-shadow: var(--press); }
+.btn.ghost { background: var(--bg); box-shadow: var(--raise-sm); }
+.btn.primary, .btn.danger-fill {
+  color: #fff; background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent) 55%, color-mix(in srgb, var(--accent) 75%, #000));
+  box-shadow: var(--raise-sm), var(--glow);
+}
+.btn.danger-fill { background: var(--danger); box-shadow: var(--raise-sm); }
+.btn.primary:active { box-shadow: inset 3px 3px 7px rgba(0,0,0,.4), inset -2px -2px 5px rgba(255,255,255,.12); }
+.btn.danger { background: var(--bg); color: var(--danger); box-shadow: var(--raise-sm); }
+.btn:disabled { box-shadow: none; opacity: .35; }
+
+.chip { border: 0; background: var(--bg); box-shadow: var(--raise-sm); border-radius: 11px; }
+.chip.on { color: #fff; background: var(--bg); box-shadow: var(--press-sm), inset 0 0 0 1.5px var(--accent); }
+.chip.accent-chip { box-shadow: var(--raise-sm), inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent); }
+.chip.block-chip { box-shadow: var(--raise-sm), inset 0 0 0 1.5px color-mix(in srgb, var(--danger) 55%, transparent); }
+
+/* 들어간 면 */
+.input, .seg, .toggle, .face, .layer-row, .color-in, .logo-pick, .calc-bar button {
+  background: var(--bg); border: 0; box-shadow: var(--press);
+}
+.input { border-radius: 12px; }
+.input:focus { box-shadow: var(--press), 0 0 0 1.5px var(--accent); }
+.input.invalid { box-shadow: var(--press), 0 0 0 1.5px var(--danger); }
+.seg { border-radius: 14px; padding: 4px; gap: 4px; }
+.seg button.on { background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 88%, #fff), var(--accent)); box-shadow: 2px 2px 6px var(--nm-lo), var(--glow); }
+.toggle { border-radius: 12px; }
+.toggle .dot { border: 0; background: var(--bg); box-shadow: var(--raise-sm); border-radius: 6px; }
+.toggle.on .dot { background: var(--accent); box-shadow: inset 1px 1px 2px rgba(0,0,0,.35), var(--glow); }
+.face { border-radius: 14px; }
+.tag { border: 0; background: var(--bg); box-shadow: var(--press-sm); border-radius: 7px; padding: 3px 8px; }
+.tag.done { color: #fff; background: var(--accent); box-shadow: inset 1px 1px 2px rgba(0,0,0,.3), 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent); }
+.check { border: 0; background: var(--bg); box-shadow: var(--press-sm); }
+.check.on { background: var(--accent); box-shadow: var(--glow); }
+
+.layer-row { border-radius: 14px; }
+.layer-row.on { background: var(--bg); box-shadow: var(--raise-sm), inset 0 0 0 1.5px var(--accent); }
+.layer-row .eye { border: 0; background: var(--bg); box-shadow: var(--raise-sm); }
+.layer-row .eye.on { color: #fff; box-shadow: var(--press-sm), inset 0 0 0 1.5px var(--accent); }
+
+/* 목록 줄: 선 대신 아주 옅은 구분 */
+.led-row, .list-item, .face-row, .show-empty, table.coords td { border-color: var(--sep); }
+.led-row:first-of-type { border-top: 0; }
+.led-row.sel, .list-item.sel { background: var(--bg); box-shadow: var(--press); border-radius: 14px; padding-left: 8px; padding-right: 8px; }
+
+/* 슬라이더 · 미터 */
+.slider input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--bg); box-shadow: var(--press-sm); }
+.slider input[type=range]::-webkit-slider-thumb { margin-top: -10px; border: 0; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 70%, #fff), var(--accent) 70%); box-shadow: 3px 3px 6px var(--nm-lo), -2px -2px 5px var(--nm-hi); }
+.slider input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--bg); box-shadow: var(--press-sm); }
+.slider input[type=range]::-moz-range-thumb { border: 0; background: var(--accent); box-shadow: 3px 3px 6px var(--nm-lo); }
+.meter { background: var(--bg); box-shadow: var(--press-sm); height: 8px; border-radius: 4px; }
+.preview, .imp-preview, .thumb { border: 0; box-shadow: var(--press); }
+
+/* 상단 헤더 */
+.app-header { background: color-mix(in srgb, var(--bg) 92%, transparent); border-bottom: 0; box-shadow: 0 8px 18px -10px rgba(0,0,0,.8); }
+.ah-div { background: rgba(255,255,255,.12); }
+.ah-pill { border: 0; background: var(--bg); box-shadow: var(--press-sm); height: 26px; }
+.ah-pill.warn { background: var(--bg); box-shadow: var(--press-sm), inset 0 0 0 1px var(--accent); }
+.ah-round { background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 85%, #fff), var(--accent)); box-shadow: var(--raise-sm), var(--glow); }
+.ah-round:active { box-shadow: inset 2px 2px 5px rgba(0,0,0,.4); }
+.topbar .btn.icon { border-radius: 14px; }
+
+/* 하단 탭바 */
+.tabbar { background: color-mix(in srgb, var(--bg) 94%, transparent); border-top: 0; box-shadow: 0 -8px 20px -8px rgba(0,0,0,.85), inset 0 1px 0 var(--nm-edge); }
+.tabbar a .tab-ic { border-radius: 14px; }
+.tabbar a.on .tab-ic { background: var(--bg); box-shadow: var(--press-sm); color: #fff; }
+.tabbar a.on .tab-ic svg { color: #b996ff; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 80%, transparent)); }
+
+/* 고정 바 · 알림 */
+.sel-bar, .relink, .calc-bar, .tool-bar { background: color-mix(in srgb, var(--bg) 96%, transparent); border: 0; box-shadow: 0 -8px 20px -8px rgba(0,0,0,.85); }
+.relink { box-shadow: var(--raise); border-radius: 18px; }
+.banner { background: var(--bg); border: 0; box-shadow: var(--raise), inset 0 0 0 1.5px var(--accent); }
+.toast { background: var(--bg); color: #fff; box-shadow: var(--raise), inset 0 0 0 1px rgba(255,255,255,.06); }
+.status { border: 0; background: var(--bg); box-shadow: var(--press-sm); }
+.tool-ic { border: 0; background: var(--bg); box-shadow: var(--raise-sm); color: #b996ff; }
+.tool-screen, .tool-frame { background: var(--bg); }
+.warn { border: 0; box-shadow: var(--press), inset 0 0 0 1px color-mix(in srgb, var(--danger) 60%, transparent); }
+.import-btn { border-style: none; }
+
+/* 공연 카드 */
+.show-card { padding: 18px; margin-bottom: 18px; }
+.show-sub { color: var(--soft); text-transform: uppercase; font-size: 11px; letter-spacing: .1em; margin-top: 18px; }
+.show-add { gap: 12px; margin-top: 16px; }
+.add-show { min-height: 50px; color: var(--soft); }
+.show-sub + .led-row, .show-sub + .show-empty, .card > .led-row:first-child { border-top: 0; }
+.led-row .btn.icon { width: 40px; min-height: 40px; }

@@ -87,3 +87,15 @@
   const add = () => document.body.appendChild(a);
   document.body ? add() : addEventListener('DOMContentLoaded', add);
 })();
+
+/* 4) 공통 뉴모피즘 스타일: 도구 자체 <style> 뒤에 붙여서 덮어씀 */
+(() => {
+  const src = document.currentScript?.src || location.href;
+  const go = () => {
+    if (document.getElementById('zuno-neu')) return;
+    const l = document.createElement('link');
+    l.id = 'zuno-neu'; l.rel = 'stylesheet'; l.href = new URL('neu.css', src).href;
+    document.head.appendChild(l);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+})();

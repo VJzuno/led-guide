@@ -1,0 +1,54 @@
+/* ZUNO 도구 공통 뉴모피즘 (다크) — 앱 본체(src/theme.css)와 같은 면 색·그림자
+ * hub.js 가 각 도구 <head> 맨 끝에 붙임. 화면에서만 적용 (인쇄·PDF·PNG 출력은 그대로) */
+@media screen {
+  :root {
+    --nm-bg: #15131b;
+    --nm-hi: rgba(255,255,255,.06);
+    --nm-lo: rgba(0,0,0,.7);
+    --nm-raise: 6px 6px 14px var(--nm-lo), -5px -5px 12px var(--nm-hi), inset 0 1px 0 rgba(255,255,255,.035);
+    --nm-raise-sm: 3px 3px 7px var(--nm-lo), -3px -3px 6px var(--nm-hi), inset 0 1px 0 rgba(255,255,255,.035);
+    --nm-press: inset 3px 3px 7px var(--nm-lo), inset -3px -3px 6px var(--nm-hi);
+    --nm-sep: rgba(255,255,255,.06);
+    /* 도구별 변수 → 같은 면 색 */
+    --bg: var(--nm-bg); --panel: var(--nm-bg); --btn: var(--nm-bg); --field: var(--nm-bg);
+    --black: var(--nm-bg); --ink: var(--nm-bg);
+    --border: var(--nm-sep); --line: var(--nm-sep);
+  }
+  html, body { background: var(--nm-bg) !important; }
+
+  /* 올라온 면 */
+  .col-list, .col-style, .home-top, .show-card, #showMenu, .modal, .show-bar,
+  .group, .container, .modal-content, .entry-row, .time-edit-panel, .multi-select-bar {
+    background: var(--nm-bg) !important; border-color: transparent !important; box-shadow: var(--nm-raise) !important; border-radius: 18px;
+  }
+  .col-list > .panel-header, #itemList, .list-actions, .show-title { background: var(--nm-bg) !important; }
+  aside { background: var(--nm-bg) !important; border-color: var(--nm-sep) !important; }
+  .calendar-grid { background: transparent !important; gap: 6px !important; }
+  .calendar-day { background: var(--nm-bg) !important; border-color: transparent !important; box-shadow: var(--nm-raise-sm); border-radius: 10px; }
+  .calendar-day.empty { background: transparent !important; box-shadow: none; }
+
+  /* 버튼: 올라온 면, 누르면 들어감 */
+  button, .btn, .chip, .seg button, .btn-edit-time {
+    border-color: transparent !important; box-shadow: var(--nm-raise-sm); transition: box-shadow .15s;
+  }
+  button:not([class*="primary"]):not(.on):not(.active):not(.selected):not([aria-pressed="true"]), .btn:not(.primary):not(.on), .chip:not(.on) { background-color: var(--nm-bg); }
+  button:active, .btn:active, .chip:active { box-shadow: var(--nm-press) !important; transform: none !important; }
+  button:disabled { box-shadow: none; }
+  .seg { background: var(--nm-bg) !important; box-shadow: var(--nm-press); border-color: transparent !important; border-radius: 14px; padding: 4px; gap: 4px; overflow: visible; }
+  .seg button { box-shadow: none !important; border-radius: 10px; }
+  .seg button:not(.on):not(.active):not([aria-pressed="true"]) { background: transparent !important; }
+  .play { box-shadow: var(--nm-raise-sm) !important; }
+
+  /* 입력: 들어간 면 */
+  input[type=text], input[type=number], input[type=search], input[type=date], input[type=time], input[type=color],
+  select, textarea, #showSearch, .dialog-input {
+    background-color: var(--nm-bg) !important; border-color: transparent !important; box-shadow: var(--nm-press) !important; border-radius: 10px;
+  }
+  input:focus, select:focus, textarea:focus { box-shadow: var(--nm-press), 0 0 0 1.5px #5613C8 !important; outline: none; }
+
+  /* 미리보기 창은 어둡게 들어간 우물 */
+  .preview-wrap, .show-preview, .monitor, .stage, .gallery-cell, .item-thumb {
+    border-color: transparent !important; box-shadow: var(--nm-press);
+  }
+  .winrow { background: var(--nm-bg) !important; border-color: transparent !important; box-shadow: var(--nm-press); }
+}
