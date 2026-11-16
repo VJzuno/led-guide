@@ -581,3 +581,17 @@ body::before {
 .file-backup summary::after { content: "›"; margin-left: auto; color: var(--soft); transition: transform .2s; }
 .file-backup[open] summary::after { transform: rotate(90deg); }
 .file-backup summary::-webkit-details-marker { display: none; }
+
+/* 폰(상단 안전영역 있음)에서만 상단 바 위로 여백 추가. PC는 안전영역이 0이라 그대로 */
+:root { --top-gap: min(44px, var(--sat)); }
+.screen { padding-top: calc(var(--sat) + var(--top-gap) + 12px); }
+.screen.has-header { padding-top: 0; }
+.app-header { padding-top: calc(var(--sat) + var(--top-gap) + 14px); }
+.tool-bar { padding-top: calc(var(--sat) + var(--top-gap) + 6px); }
+.update-toast { position: fixed; z-index: 96; left: calc(var(--sal) + 12px); right: calc(var(--sar) + 12px); max-width: 520px; margin: 0 auto;
+  bottom: calc(var(--tab-h) + var(--tabpad) + 12px); display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; cursor: pointer;
+  background: var(--g-fill); border: 1px solid color-mix(in srgb, var(--accent) 70%, rgba(255,255,255,.2)); border-radius: 22px;
+  -webkit-backdrop-filter: var(--g-blur); backdrop-filter: var(--g-blur); box-shadow: var(--g-spec), var(--g-shadow), var(--g-glow);
+  animation: toastUp .25s ease-out; }
+.update-toast .btn { min-height: 40px; }
+@keyframes toastUp { from { transform: translateY(16px); opacity: 0; } }

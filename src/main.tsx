@@ -127,10 +127,11 @@ function App() {
         ))}
       </nav>
       {s.updateReady && (
-        <div class="banner">
-          <div class="grow small"><b>업데이트 있음</b><br /><span class="muted">데이터는 그대로 유지됩니다</span></div>
-          <button class="btn primary" onClick={() => updateSW?.(true)}>새로고침</button>
-          <button class="btn icon ghost" aria-label="닫기" onClick={() => set({ updateReady: false })}>✕</button>
+        /* 하단 토스트 (상단은 다이내믹 아일랜드 근처라 잘 안 눌림). 토스트 전체를 눌러도 새로고침 */
+        <div class="update-toast" role="button" onClick={() => { updateSW?.(true); setTimeout(() => location.reload(), 1500); }}>
+          <div class="grow small"><b>새 버전이 있어요</b><br /><span class="muted">눌러서 새로고침 · 데이터는 그대로</span></div>
+          <span class="btn primary">새로고침</span>
+          <button class="btn icon ghost" aria-label="닫기" onClick={(e) => { e.stopPropagation(); set({ updateReady: false }); }}>✕</button>
         </div>
       )}
       {s.ask && (
