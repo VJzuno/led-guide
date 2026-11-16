@@ -27,9 +27,10 @@ export default defineConfig({
         start_url: '.',
         scope: '.',
         icons: [
-          { src: 'icons/icon-192-v2.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icon-512-v2.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icons/icon-maskable-512-v2.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          // PC 앱 아이콘: 여백 없이 꽉 차게 (maskable 은 넣지 않음 — 있으면 Mac Chrome이 줄여서 여백을 넣음)
+          { src: 'icons/icon-192-v3.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512-v3.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-1080-v3.png', sizes: '1080x1080', type: 'image/png', purpose: 'any' },
         ],
       },
       workbox: {
