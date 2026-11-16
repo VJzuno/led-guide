@@ -112,13 +112,15 @@ main{display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:14px}
   <div class="grp">
     <h2>재질 · 라이팅</h2>
     <div class="seg" data-key="mat">
-      <button data-v="chrome" aria-pressed="true">크롬</button>
+      <button data-v="prism" aria-pressed="true">프리즘</button>
+      <button data-v="chrome">크롬</button>
       <button data-v="gold">골드</button>
       <button data-v="lav">라벤더</button>
       <button data-v="logo">로고 컬러</button>
     </div>
     <div class="seg" data-key="env">
-      <button data-v="studio" aria-pressed="true">스튜디오</button>
+      <button data-v="prism" aria-pressed="true">프리즘</button>
+      <button data-v="studio">스튜디오</button>
       <button data-v="neon">퍼플 네온</button>
       <button data-v="hard">하드 콘트라스트</button>
     </div>
@@ -224,7 +226,7 @@ import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const W = 1920, H = 1080, DUR = 10, HALF = 5;
 const $ = id => document.getElementById(id);
-const S = { mask:'alpha', mat:'chrome', env:'studio', dir:1, move:'f', eRot:'inout', eMove:'inout', fps:30, bg:'black' };
+const S = { mask:'alpha', mat:'prism', env:'prism', dir:1, move:'f', eRot:'inout', eMove:'inout', fps:30, bg:'black' };
 
 /* ---------- renderer ---------- */
 const canvas = $('cv');
@@ -242,6 +244,18 @@ camera.position.set(0, 0, 22);
 const pmrem = new THREE.PMREMGenerator(renderer);
 
 const ENV = {
+  // 프리즘: 흰 키라이트 + 은은한 R·G·B 패널 → 크롬 위에 무지갯빛이 살짝 번짐
+  prism: { base:0x05040a, strips:[
+    [30,5, 0xffffff, 4.5, [0,18,4]],
+    [3,26, 0xff3b4e, 5,   [-19,0,7]],
+    [3,26, 0x3b7bff, 5.5, [19,2,6]],
+    [24,4, 0x2ee88a, 3,   [0,-16,-10]],
+    [3,14, 0xffd23b, 3,   [-14,10,-6]],
+    [7,7,  0xffffff, 11,  [9,7,22]],
+    [2,18, 0x3bf0ff, 3.5, [-8,-4,-20]],
+    [50,16, 0xe8e4f4, 1.4,[0,7,40]],
+    [50,16, 0x2a2440, .4, [0,-9.2,40]],
+  ]},
   studio: { base:0x07060c, strips:[
     [30,5, 0xffffff, 5,  [0,18,4]],
     [3,26, 0xffffff, 9,  [-19,0,7]],
@@ -288,7 +302,7 @@ const rim = new THREE.DirectionalLight(0x5613C8, 1.4); rim.position.set(-10, 3, 
 const capMat = new THREE.MeshPhysicalMaterial({ metalness:1, roughness:.14, clearcoat:.4, clearcoatRoughness:.08 });
 const sideMat = new THREE.MeshPhysicalMaterial({ metalness:1, roughness:.2, clearcoat:.2 });
 let logoTex = null;
-const MAT_COLOR = { chrome:0xf2f2f6, gold:0xffc96b, lav:0xb6a8ec, logo:0xffffff };
+const MAT_COLOR = { prism:0xf4f4f8, chrome:0xf2f2f6, gold:0xffc96b, lav:0xb6a8ec, logo:0xffffff };
 function applyMaterial(){
   const r = +$('rough').value;
   capMat.roughness = r; sideMat.roughness = Math.min(1, r + .08);
@@ -297,9 +311,15 @@ function applyMaterial(){
   sideMat.color.set(S.mat === 'logo' ? MAT_COLOR.chrome : c);
   capMat.map = (S.mat === 'logo') ? logoTex : null;
   capMat.metalness = (S.mat === 'logo') ? .85 : 1;
+  // 프리즘: 얇은 막 간섭(iridescence)으로 보는 각도에 따라 RGB가 은은하게 바뀜
+  const pr = S.mat === 'prism';
+  capMat.iridescence = pr ? 1 : 0; sideMat.iridescence = pr ? .85 : 0;
+  capMat.iridescenceIOR = sideMat.iridescenceIOR = 1.45;
+  capMat.iridescenceThicknessRange = [80, 900]; sideMat.iridescenceThicknessRange = [120, 1000];
   capMat.needsUpdate = true; sideMat.needsUpdate = true;
   scene.environment = getEnv(S.env);
-  rim.color.set(S.env === 'hard' ? 0xffffff : 0x5613C8);
+  rim.color.set(S.env === 'hard' ? 0xffffff : S.env === 'prism' ? 0x9fd8ff : 0x5613C8);
+  rim.intensity = S.env === 'prism' ? .8 : 1.4;
   renderer.toneMappingExposure = +$('expo').value;
 }
 
@@ -687,6 +707,14 @@ document.querySelector('aside').addEventListener('input', () => { clearTimeout(l
 document.querySelector('aside').addEventListener('click', e => { if (e.target.closest('.seg button')) { clearTimeout(lastTimer); lastTimer = setTimeout(() => lsSet(LAST_KEY, snapshot()), 300); } });
 renderPresets();
 applySnapshot(lsGet(LAST_KEY), false);
+// 기본 재질을 프리즘으로 바꾼 뒤 한 번만: 예전 마지막 설정이 크롬이어도 프리즘으로 시작
+try {
+  if (!localStorage.getItem('metalLogo.prismDefault')) {
+    localStorage.setItem('metalLogo.prismDefault', '1');
+    applySnapshot({ seg: { mat: 'prism', env: 'prism' } }, false);
+    lsSet(LAST_KEY, snapshot());
+  }
+} catch {}
 
 applyMaterial();
 updateEaseUI();

@@ -116,7 +116,11 @@ function startSync(u: User) {
       synced.tools.set(ch.doc.id, d.at || 0);
       incoming[ch.doc.id] = d;
     }
-    if (Object.keys(incoming).length && mergeTools(incoming).length) emit();
+    if (Object.keys(incoming).length) {
+      const got = mergeTools(incoming);
+      // 열려 있는 도구 화면(iframe)이 새 값을 다시 읽도록 알림
+      if (got.length) { emit(); dispatchEvent(new CustomEvent('zuno-tools-updated', { detail: got })); }
+    }
     if (!snap.metadata.fromCache) { ready.add('tools'); afterReady(); }
   }, (e) => setStatus('error', friendly(e))));
 }
@@ -125,7 +129,7 @@ function stopSync() { unsubs.forEach((f) => f()); unsubs = []; ready.clear(); KI
 /** 네 컬렉션 첫 스냅샷을 다 받으면: 이 기기에만 있거나 더 새로운 것 올리기 */
 function afterReady() { if (ready.size >= 4) schedulePush(0); }
 
-function schedulePush(ms = 1500) {
+function schedulePush(ms = 600) {
   if (!user) return;
   clearTimeout(pushTimer);
   pushTimer = window.setTimeout(push, ms);
