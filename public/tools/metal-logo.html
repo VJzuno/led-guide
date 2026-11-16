@@ -245,16 +245,17 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 
 const ENV = {
   // 프리즘: 흰 키라이트 + 은은한 R·G·B 패널 → 크롬 위에 무지갯빛이 살짝 번짐
-  prism: { base:0x05040a, strips:[
-    [30,5, 0xffffff, 4.5, [0,18,4]],
-    [3,26, 0xff3b4e, 5,   [-19,0,7]],
-    [3,26, 0x3b7bff, 5.5, [19,2,6]],
-    [24,4, 0x2ee88a, 3,   [0,-16,-10]],
-    [3,14, 0xffd23b, 3,   [-14,10,-6]],
-    [7,7,  0xffffff, 11,  [9,7,22]],
-    [2,18, 0x3bf0ff, 3.5, [-8,-4,-20]],
-    [50,16, 0xe8e4f4, 1.4,[0,7,40]],
-    [50,16, 0x2a2440, .4, [0,-9.2,40]],
+  prism: { base:0x050505, strips:[
+    [30,5, 0xffffff, 5,   [0,18,4]],
+    [3,26, 0xffffff, 7,   [-19,0,7]],
+    [3,26, 0xffffff, 5,   [19,2,6]],
+    [1.2,26, 0xff4a5a, 4.5, [-16.5,0,7]],
+    [1.2,26, 0x4a8cff, 4.5, [16.5,2,6]],
+    [24,3, 0x4ae89a, 2, [0,-16,-10]],
+    [7,7,  0xffffff, 12,  [9,7,22]],
+    [2,18, 0xffffff, 4,   [-8,-4,-20]],
+    [50,16, 0xededed, 1.5,[0,7,40]],
+    [50,16, 0x2a2a2a, .35,[0,-9.2,40]],
   ]},
   studio: { base:0x07060c, strips:[
     [30,5, 0xffffff, 5,  [0,18,4]],
@@ -313,13 +314,13 @@ function applyMaterial(){
   capMat.metalness = (S.mat === 'logo') ? .85 : 1;
   // 프리즘: 얇은 막 간섭(iridescence)으로 보는 각도에 따라 RGB가 은은하게 바뀜
   const pr = S.mat === 'prism';
-  capMat.iridescence = pr ? 1 : 0; sideMat.iridescence = pr ? .85 : 0;
+  capMat.iridescence = pr ? .4 : 0; sideMat.iridescence = pr ? .3 : 0;
   capMat.iridescenceIOR = sideMat.iridescenceIOR = 1.45;
   capMat.iridescenceThicknessRange = [80, 900]; sideMat.iridescenceThicknessRange = [120, 1000];
   capMat.needsUpdate = true; sideMat.needsUpdate = true;
   scene.environment = getEnv(S.env);
-  rim.color.set(S.env === 'hard' ? 0xffffff : S.env === 'prism' ? 0x9fd8ff : 0x5613C8);
-  rim.intensity = S.env === 'prism' ? .8 : 1.4;
+  rim.color.set(S.env === 'hard' ? 0xffffff : S.env === 'prism' ? 0xffffff : 0x5613C8);
+  rim.intensity = S.env === 'prism' ? .5 : 1.4;
   renderer.toneMappingExposure = +$('expo').value;
 }
 
