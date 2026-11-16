@@ -8,7 +8,7 @@ import { snapPos } from '../layout';
 import { evalExpr, isExpr } from '../calc';
 import type { VideoVariant } from '../video';
 import { MapOverlay } from './ImportMap';
-import { onFirebaseHost, cloudStatus, cloudUser } from '../cloud';
+import { onFirebaseHost, cloudStatus, cloudUser, cloudChecking } from '../cloud';
 
 export const go = (path: string) => { location.hash = '#' + path; };
 
@@ -29,7 +29,7 @@ export function AppHeader({ title, right }: { title: string; right?: ComponentCh
 function StatusPill({ online }: { online: boolean }) {
   if (onFirebaseHost()) {
     const st = cloudStatus(), u = cloudUser();
-    const [label, cls] = !online ? ['오프라인', 'off'] : !u ? ['로그인', 'warn'] : st === 'syncing' || st === 'connecting' ? ['동기화 중', 'busy'] : st === 'error' ? ['동기화 오류', 'warn'] : ['동기화됨', ''];
+    const [label, cls] = !online ? ['오프라인', 'off'] : !u && cloudChecking() ? ['연결 중', 'busy'] : !u ? ['로그인', 'warn'] : st === 'syncing' || st === 'connecting' ? ['동기화 중', 'busy'] : st === 'error' ? ['동기화 오류', 'warn'] : ['동기화됨', ''];
     return <button class={'ah-pill ' + cls} onClick={() => go('/menu/backup')} aria-label={`상태: ${label}`}><i />{label}</button>;
   }
   if (!online) return <button class="ah-pill off" onClick={() => go('/menu/backup')}><i />오프라인</button>;

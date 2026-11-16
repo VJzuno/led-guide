@@ -40,7 +40,10 @@ let user: User | null = null;
 let status: CloudStatus = 'off';
 let lastError = '';
 let lastSyncAt = 0;
+let authKnown = false; // 저장된 로그인을 다 읽었는지 (앱 시작 직후 잠깐 false)
 export const cloudUser = () => user;
+/** 저장된 로그인 확인 전이면 true → '로그인' 대신 '연결 중' 표시 */
+export const cloudChecking = () => !authKnown;
 export const cloudStatus = (): CloudStatus => (user && !navigator.onLine ? 'offline' : status);
 export const cloudError = () => lastError;
 export const cloudLastSync = () => lastSyncAt;
@@ -175,7 +178,7 @@ export function startCloud() {
   started = true;
   getRedirectResult(auth).catch((e) => setStatus('error', friendly(e)));
   onAuthStateChanged(auth, (u) => {
-    user = u;
+    user = u; authKnown = true;
     if (u) startSync(u); else { stopSync(); setStatus('off'); }
   });
   localChange.add(() => schedulePush());

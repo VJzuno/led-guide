@@ -6,7 +6,7 @@ import { isIOS } from '../export';
 import { createSample } from '../sample';
 import { clickOn, setClickOn, tick } from '../click';
 import { useEffect } from 'preact/hooks';
-import { onFirebaseHost, cloudUser, cloudStatus, cloudError, cloudLastSync, cloudSignIn, cloudSignOut, NEW_URL } from '../cloud';
+import { onFirebaseHost, cloudUser, cloudStatus, cloudError, cloudLastSync, cloudSignIn, cloudSignOut, cloudChecking, NEW_URL } from '../cloud';
 import { clientId, clientFromBuild, setClientId, validClientId, isLinked, lastDriveSync, syncDrive, unlinkDrive, prepareDrive, useRedirect, redirectUri, resumeAfterRedirect, clearResume, takeDriveError } from '../gdrive';
 import { TopBar, AppHeader, Seg, go, timeAgo } from './common';
 
@@ -227,6 +227,7 @@ function CloudCard() {
     try { await cloudSignIn(); } catch (e: any) { toast(e?.message || '로그인 실패'); }
     setBusy(false);
   };
+  if (!u && cloudChecking()) return <div class="card small muted">로그인 확인 중…</div>;
   if (!u) return (
     <div class="card stack accent">
       <div style="font-weight:600">클라우드 동기화</div>
