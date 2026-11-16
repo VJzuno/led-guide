@@ -12,16 +12,23 @@ export function tick() {
   try {
     ctx ||= new (window.AudioContext || (window as any).webkitAudioContext)();
     if (ctx.state === 'suspended') ctx.resume();
-    const t = ctx.currentTime;
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(1500, t);
-    o.frequency.exponentialRampToValueAtTime(650, t + 0.035);
+    const c = ctx, t = c.currentTime;
+    // 밝은 '틱': 짧은 고음(사인) + 아주 짧은 공기 소리(고역 노이즈). 애플 키보드 클릭 느낌
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(3400, t);
+    o.frequency.exponentialRampToValueAtTime(2200, t + 0.018);
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.09, t + 0.004);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-    o.connect(g).connect(ctx.destination);
-    o.start(t); o.stop(t + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.07, t + 0.0015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.026);
+    o.connect(g).connect(c.destination);
+    o.start(t); o.stop(t + 0.03);
+    const n = c.createBuffer(1, Math.floor(c.sampleRate * 0.012), c.sampleRate), d = n.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3;
+    const src = c.createBufferSource(), hp = c.createBiquadFilter(), ng = c.createGain();
+    src.buffer = n; hp.type = 'highpass'; hp.frequency.value = 4500; ng.gain.value = 0.05;
+    src.connect(hp).connect(ng).connect(c.destination);
+    src.start(t);
   } catch { /* 오디오 막힘 */ }
 }
 

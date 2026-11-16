@@ -109,11 +109,16 @@
     try {
       ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
       if (ctx.state === 'suspended') ctx.resume();
-      const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'triangle';
-      o.frequency.setValueAtTime(1500, t); o.frequency.exponentialRampToValueAtTime(650, t + 0.035);
-      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.06);
+      const c = ctx, t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(3400, t); o.frequency.exponentialRampToValueAtTime(2200, t + 0.018);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07, t + 0.0015); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.026);
+      o.connect(g).connect(c.destination); o.start(t); o.stop(t + 0.03);
+      const n = c.createBuffer(1, Math.floor(c.sampleRate * 0.012), c.sampleRate), d = n.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+      const src = c.createBufferSource(), hp = c.createBiquadFilter(), ng = c.createGain();
+      src.buffer = n; hp.type = 'highpass'; hp.frequency.value = 4500; ng.gain.value = 0.05;
+      src.connect(hp).connect(ng).connect(c.destination); src.start(t);
     } catch (e) { /* 오디오 막힘 */ }
   };
   document.addEventListener('pointerdown', (e) => {
