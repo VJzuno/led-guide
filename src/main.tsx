@@ -32,7 +32,15 @@ import { Menu } from './ui/Menu';
 
 /* ---------- 서비스 워커: 새 버전이 있으면 배너 ---------- */
 let updateSW: ((reload?: boolean) => Promise<void>) | undefined;
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+/* firebaseapp.com 주소는 로그인 창 전용: 앱 캐시(서비스 워커)를 지우고 진짜 앱 주소로 보냄 */
+const loginHelperHost = location.hostname.endsWith('.firebaseapp.com');
+if (loginHelperHost) {
+  navigator.serviceWorker?.getRegistrations().then((rs) => Promise.all(rs.map((r) => r.unregister()))).finally(() => {
+    if (!location.pathname.startsWith('/__/')) location.replace('https://zuno-workspace.web.app/' + location.hash);
+    else location.reload();
+  });
+}
+if ('serviceWorker' in navigator && import.meta.env.PROD && !loginHelperHost) {
   updateSW = registerSW({
     onNeedRefresh() { set({ updateReady: true }); },
     onRegisteredSW(_url, reg) {

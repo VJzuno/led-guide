@@ -39,7 +39,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: 'index.html',
         // 도구 페이지(public/tools/*.html)는 각자 HTML로 열려야 함 → 앱 셸로 대체하지 않음
-        navigateFallbackDenylist: [/\/tools\//],
+        navigateFallbackDenylist: [/\/tools\//, /^\/__\//], // /__/ = Firebase 로그인 주소: 앱 화면으로 바꿔치면 로그인 멈춤
         cleanupOutdatedCaches: true,
         // 도구가 쓰는 Google Fonts: 한 번 온라인으로 열면 오프라인에서도 같은 글꼴
         runtimeCaching: [
