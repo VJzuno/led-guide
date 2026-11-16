@@ -24,7 +24,11 @@ const KINDS: Kind[] = ['projects', 'leds', 'borders'];
 export const onFirebaseHost = () => /\.(web\.app|firebaseapp\.com)$/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 export const NEW_URL = 'https://zuno-workspace.web.app/';
 
-const cfg = { ...firebaseConfig, authDomain: /\.(web\.app|firebaseapp\.com)$/.test(location.hostname) ? location.hostname : firebaseConfig.authDomain };
+/* 로그인 창 주소:
+ * - 아이폰(리디렉션): 앱과 같은 주소여야 로그인 정보가 안 사라짐 → web.app
+ * - PC(팝업): 앱과 다른 주소(firebaseapp.com)여야 함. 같은 주소면 설치한 앱 창이 팝업을 가로채서 '로그인 중…'에서 멈춤 */
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const cfg = { ...firebaseConfig, authDomain: isIOS() && /\.(web\.app|firebaseapp\.com)$/.test(location.hostname) ? location.hostname : firebaseConfig.authDomain };
 const app = initializeApp(cfg);
 const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence], popupRedirectResolver: browserPopupRedirectResolver });
 let db: Firestore | null = null;
@@ -43,7 +47,6 @@ export const cloudLastSync = () => lastSyncAt;
 const setStatus = (s: CloudStatus, err = '') => { status = s; lastError = err; if (s === 'synced') lastSyncAt = Date.now(); emit(); };
 
 /* ---------- 로그인 ---------- */
-const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /** 반드시 버튼 클릭 안에서 호출 (팝업 허용 조건) */
 export async function cloudSignIn() {
   const p = new GoogleAuthProvider();
