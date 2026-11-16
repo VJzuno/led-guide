@@ -65,7 +65,8 @@ function importOldBorderMaker() {
     const o = JSON.parse(raw);
     if (!o || !Array.isArray(o.wins) || !o.wins.length) return;
     const p = createProject('이전 Border Maker');
-    const b = newBorderSet(p.id, o.W || 1920, o.H || 1080);
+    const b = newBorderSet(p.id);
+    b.W = o.W || 1920; b.H = o.H || 1080; b.follow = false;
     b.name = '이전 보더';
     b.layers = [{
       id: uid(), name: '레이어 1', visible: true,

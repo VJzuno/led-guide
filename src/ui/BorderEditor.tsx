@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { useStore, getBorder, getProject, updateBorder, uid, ask, toast } from '../store';
+import { useStore, getBorder, getProject, updateBorder, uid, ask, toast, showSize, showOf, syncShowBorders } from '../store';
 import { renderLayer, renderMerged, toPng, layerFileName, mergedFileName, newLayer } from '../border';
 import { deliver, deliverMany } from '../export';
 import type { BorderSet, BorderLayer, BorderWin } from '../types';
@@ -20,6 +20,7 @@ export function BorderEditor({ id }: { id: string }) {
   const [snap, setSnap] = useState(true);
   const [busy, setBusy] = useState('');
   const [guide, setGuide] = useState<{ url: string; op: number } | null>(null);
+  useEffect(() => { if (B) syncShowBorders(B.projectId); });
 
   if (!B || B.deletedAt) return <div class="screen"><TopBar title="보더 없음" back="/projects" /></div>;
   const L = B.layers.find((l) => l.id === layerId) || B.layers[0];
@@ -53,24 +54,35 @@ export function BorderEditor({ id }: { id: string }) {
     setBusy('');
   };
   const visible = B.layers.filter((l) => l.visible);
+  const sz = showSize(B.projectId, B.showId);
+  const follow = B.follow !== false;
 
   return (
     <div class="screen compact">
-      <TopBar title={B.name || '보더'} sub={`${getProject(B.projectId)?.name ?? ''} · 보더 묶음`} back={`/project/${B.projectId}`} />
+      <TopBar title={B.name || '보더'} sub={`${getProject(B.projectId)?.name ?? ''} · ${showOf(B.projectId, B.showId)?.name ?? ''}`} back={`/project/${B.projectId}`} />
 
-      <div class="canvas-row">
-        <span class="lbl">캔버스</span>
-        <div class="pair-row grow">
-          <NumInput value={B.W} min={16} aria="캔버스 가로" onChange={(v) => up((b) => { b.W = clamp(v, 16, LIM); })} />
-          <span class="x">×</span>
-          <NumInput value={B.H} min={16} aria="캔버스 세로" onChange={(v) => up((b) => { b.H = clamp(v, 16, LIM); })} />
+      {follow && sz ? (
+        <div class="canvas-row follow-row">
+          <span class="lbl">캔버스</span>
+          <div class="grow"><b class="num">{sz.w}×{sz.h}</b> <span class="small muted">공연 LED 해상도{sz.ref ? ` · ${sz.ref.name}` : ''}</span></div>
+          <button class="chip on" onClick={() => up((b) => { b.follow = false; })}>따라가는 중</button>
         </div>
-      </div>
-      <div class="row wrap" style="gap:6px;margin:-2px 0 10px">
-        {PRESETS.map(([w, h]) => (
-          <button key={w + 'x' + h} class={'chip' + (B.W === w && B.H === h ? ' on' : '')} onClick={() => up((b) => { b.W = w; b.H = h; })}>{w}×{h}</button>
-        ))}
-      </div>
+      ) : <>
+        <div class="canvas-row">
+          <span class="lbl">캔버스</span>
+          <div class="pair-row grow">
+            <NumInput value={B.W} min={16} aria="캔버스 가로" onChange={(v) => up((b) => { b.W = clamp(v, 16, LIM); })} />
+            <span class="x">×</span>
+            <NumInput value={B.H} min={16} aria="캔버스 세로" onChange={(v) => up((b) => { b.H = clamp(v, 16, LIM); })} />
+          </div>
+        </div>
+        <div class="row wrap" style="gap:6px;margin:-2px 0 10px">
+          {sz && <button class="chip accent-chip" onClick={() => up((b) => { b.follow = true; b.W = sz.w; b.H = sz.h; })}>공연 해상도 {sz.w}×{sz.h} 따라가기</button>}
+          {PRESETS.map(([w, h]) => (
+            <button key={w + 'x' + h} class={'chip' + (B.W === w && B.H === h ? ' on' : '')} onClick={() => up((b) => { b.W = w; b.H = h; })}>{w}×{h}</button>
+          ))}
+        </div>
+      </>}
 
       <BorderStage B={B} L={L} wi={wi} only={only} boxes={boxes} snap={snap} guide={guide}
         onSelectWin={setWinIdx} onChange={(fn) => upL(fn)} />

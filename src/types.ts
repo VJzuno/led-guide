@@ -1,9 +1,20 @@
 export const SCHEMA_VERSION = 6;
 
+/** 공연: 프로젝트 안의 묶음. 안의 LED 가이드·보더가 같은 LED 해상도를 씀
+ *  size 가 없으면 첫 LED(기준 LED)의 인풋 크기를 자동으로 사용 */
+export interface Show {
+  id: string;
+  name: string;
+  order: number;
+  size?: { w: number; h: number };
+}
+
 export interface Project {
   id: string;
   name: string;
   order: number;
+  /** 없으면 기본 공연 하나 (id = `${projectId}-s1`) */
+  shows?: Show[];
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
@@ -57,6 +68,8 @@ export type Align = 'top-left' | 'center';
 export interface Led {
   id: string;
   projectId: string;
+  /** 속한 공연. 없거나 공연이 없어졌으면 첫 공연 */
+  showId?: string;
   order: number;
   number: string;
   name: string;
@@ -123,6 +136,9 @@ export interface BorderLayer {
 export interface BorderSet {
   id: string;
   projectId: string;
+  showId?: string;
+  /** 공연 LED 해상도 따라가기 (기본 켜짐) */
+  follow?: boolean;
   order: number;
   name: string;
   W: number;

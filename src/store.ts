@@ -2,9 +2,10 @@ import { useEffect, useState } from 'preact/hooks';
 import * as DB from './db';
 import {
   DEFAULT_OPTIONS, DEFAULT_SETTINGS,
-  type Project, type Led, type ExportMeta, type Settings, type Face, type BorderSet,
+  type Project, type Led, type ExportMeta, type Settings, type Face, type BorderSet, type Show,
 } from './types';
 import { newLayer } from './border';
+import { inputLayout } from './layout';
 
 export interface State {
   ready: boolean;
@@ -93,6 +94,68 @@ export const bordersOf = (projectId: string) =>
   state.borders.filter((b) => b.projectId === projectId && !b.deletedAt).sort((a, b) => a.order - b.order);
 export const getBorder = (id: string) => state.borders.find((b) => b.id === id);
 
+/* ---------- 공연 (프로젝트 안) ---------- */
+const defaultShow = (pid: string): Show => ({ id: pid + '-s1', name: '공연 1', order: 0 });
+export const showsOf = (p: Project): Show[] => (p.shows?.length ? [...p.shows].sort((a, b) => a.order - b.order) : [defaultShow(p.id)]);
+/** 항목이 실제로 속한 공연 id (없거나 지워진 공연이면 첫 공연) */
+const showKey = (p: Project, sid?: string) => { const ss = showsOf(p); return sid && ss.some((s) => s.id === sid) ? sid : ss[0].id; };
+export const ledsOfShow = (pid: string, sid: string) => { const p = getProject(pid); return p ? ledsOf(pid).filter((l) => showKey(p, l.showId) === sid) : []; };
+export const bordersOfShow = (pid: string, sid: string) => { const p = getProject(pid); return p ? bordersOf(pid).filter((b) => showKey(p, b.showId) === sid) : []; };
+export const showOf = (pid: string, sid?: string) => { const p = getProject(pid); if (!p) return undefined; const k = showKey(p, sid); return showsOf(p).find((s) => s.id === k); };
+/** 공연 LED 해상도: 직접 지정했거나, 기준 LED(첫 LED)의 인풋 크기 */
+export function showSize(pid: string, sid?: string): { w: number; h: number; ref?: Led } | null {
+  const s = showOf(pid, sid);
+  if (!s) return null;
+  if (s.size) return s.size;
+  const ref = ledsOfShow(pid, s.id)[0];
+  if (!ref) return null;
+  const lay = inputLayout(ref);
+  return { w: lay.W, h: lay.H, ref };
+}
+function setShows(pid: string, fn: (ss: Show[]) => Show[]) {
+  const p = getProject(pid);
+  if (p) saveProject({ ...p, shows: fn(showsOf(p).map((s) => ({ ...s }))) });
+}
+export function addShow(pid: string): Show {
+  const p = getProject(pid)!;
+  const ss = showsOf(p);
+  const s: Show = { id: uid(), name: '공연 ' + (ss.length + 1), order: Math.max(...ss.map((x) => x.order)) + 1 };
+  setShows(pid, (l) => [...l, s]);
+  return s;
+}
+export function updateShow(pid: string, sid: string, patch: Partial<Show>) {
+  setShows(pid, (l) => l.map((s) => { if (s.id !== sid) return s; const n = { ...s, ...patch }; if ('size' in patch && !patch.size) delete n.size; return n; }));
+}
+/** 공연 삭제: 안의 LED·보더는 휴지통으로 */
+export function removeShow(pid: string, sid: string) {
+  ledsOfShow(pid, sid).forEach((l) => trashLed(l.id));
+  bordersOfShow(pid, sid).forEach((b) => trashBorder(b.id));
+  setShows(pid, (l) => l.filter((s) => s.id !== sid));
+}
+/** 공연 복제: LED·보더 함께 */
+export function duplicateShow(pid: string, sid: string) {
+  const src = showOf(pid, sid);
+  if (!src) return;
+  const p = getProject(pid)!;
+  const n: Show = { ...structuredClone(src), id: uid(), name: src.name + ' 복사본', order: Math.max(...showsOf(p).map((x) => x.order)) + 1 };
+  setShows(pid, (l) => [...l, n]);
+  for (const l of ledsOfShow(pid, src.id)) { const c = duplicateLed(l.id, pid, false); if (c) updateLed(c.id, (x) => ({ ...x, showId: n.id })); }
+  for (const b of bordersOfShow(pid, src.id)) { const c = duplicateBorder(b.id, pid, false); if (c) updateBorder(c.id, (x) => { x.showId = n.id; }); }
+}
+/** 공연 해상도를 따라가는 보더 크기 맞추기 (달라진 것만 저장) */
+export function syncShowBorders(pid: string) {
+  const p = getProject(pid);
+  if (!p) return;
+  for (const s of showsOf(p)) {
+    const sz = showSize(pid, s.id);
+    if (!sz) continue;
+    for (const b of bordersOfShow(pid, s.id)) {
+      if (b.follow === false || (b.W === sz.w && b.H === sz.h)) continue;
+      updateBorder(b.id, (x) => { x.W = sz.w; x.H = sz.h; });
+    }
+  }
+}
+
 /* ---------- 프로젝트 ---------- */
 export function saveProject(p: Project) {
   p.updatedAt = Date.now();
@@ -139,15 +202,18 @@ export function duplicateProject(id: string) {
   const src = getProject(id);
   if (!src) return;
   const p = createProject(src.name + ' 복사본');
+  if (src.shows) updateProject(p.id, { shows: structuredClone(src.shows) });
   for (const l of ledsOf(id)) duplicateLed(l.id, p.id, false);
   for (const b of bordersOf(id)) duplicateBorder(b.id, p.id, false);
 }
 
 /* ---------- 보더 묶음 ---------- */
-export function newBorderSet(projectId: string, W = 1920, H = 1080): BorderSet {
+export function newBorderSet(projectId: string, showId?: string): BorderSet {
   const now = Date.now();
-  const n = bordersOf(projectId).length + 1;
-  return { id: uid(), projectId, order: now, name: '보더 ' + n, W, H, layers: [newLayer(uid(), '레이어 1', W, H)], createdAt: now, updatedAt: now };
+  const sz = showSize(projectId, showId);
+  const W = sz?.w || 1920, H = sz?.h || 1080;
+  const n = (showId ? bordersOfShow(projectId, showId) : bordersOf(projectId)).length + 1;
+  return { id: uid(), projectId, showId, follow: true, order: now, name: '보더 ' + n, W, H, layers: [newLayer(uid(), '레이어 1', W, H)], createdAt: now, updatedAt: now };
 }
 export function addBorder(b: BorderSet) {
   state.borders = [...state.borders, b];
@@ -224,6 +290,23 @@ export function newLed(projectId: string): Led {
     createdAt: now,
     updatedAt: now,
   };
+}
+
+/** 공연에 LED 추가: 공연에 LED가 있으면 마지막 LED 설정(캐비닛·면 = 같은 해상도)을 그대로 이어받음 */
+export function newLedInShow(pid: string, sid: string): Led {
+  const list = ledsOfShow(pid, sid);
+  const t = list[list.length - 1];
+  const now = Date.now();
+  const n = list.length + 1;
+  if (!t) return { ...newLed(pid), showId: sid, number: String(n).padStart(2, '0'), name: 'LED ' + n };
+  const c: Led = structuredClone(t);
+  c.id = uid(); c.showId = sid; c.order = now; c.createdAt = now; c.updatedAt = now;
+  c.number = String(n).padStart(2, '0'); c.name = 'LED ' + n;
+  const idMap = new Map<string, string>();
+  c.faces = c.faces.map((f) => { const nid = uid(); idMap.set(f.id, nid); return { ...f, id: nid }; });
+  if (c.input.manual) c.input.manual = Object.fromEntries(Object.entries(c.input.manual).filter(([k]) => idMap.has(k)).map(([k, v]) => [idMap.get(k)!, v]));
+  delete c.output.manual; delete c.input.doneAt; delete c.output.doneAt; delete c.input.map; delete c.deletedAt;
+  return c;
 }
 
 export function addLed(l: Led) {
