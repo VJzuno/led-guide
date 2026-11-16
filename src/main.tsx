@@ -8,6 +8,8 @@ import '@fontsource/jetbrains-mono/latin-700.css';
 import '@fontsource/ibm-plex-sans-kr/400.css';
 import '@fontsource/ibm-plex-sans-kr/600.css';
 import './theme.css';
+import { startClickSound } from './click';
+startClickSound();
 
 import { state, set, useStore, applyAccent, answer, createProject, newBorderSet, addBorder, uid, toast } from './store';
 import { loadAll, requestPersist } from './db';

@@ -4,6 +4,7 @@ import { SCHEMA_VERSION, PRESETS, type OutputPreset } from '../types';
 import { saveToICloud, loadFromFile, lastBackupAt, lastLoadAt, changedSinceBackup, needsBackup, ago } from '../sync';
 import { isIOS } from '../export';
 import { createSample } from '../sample';
+import { clickOn, setClickOn, tick } from '../click';
 import { useEffect } from 'preact/hooks';
 import { onFirebaseHost, cloudUser, cloudStatus, cloudError, cloudLastSync, cloudSignIn, cloudSignOut, NEW_URL } from '../cloud';
 import { clientId, clientFromBuild, setClientId, validClientId, isLinked, lastDriveSync, syncDrive, unlinkDrive, prepareDrive, useRedirect, redirectUri, resumeAfterRedirect, clearResume, takeDriveError } from '../gdrive';
@@ -355,6 +356,18 @@ function DriveCard() {
   );
 }
 
+function ClickSetting() {
+  const [on, setOn] = useState(clickOn());
+  return (
+    <div class="card stack">
+      <div style="font-weight:600">클릭음</div>
+      <div class="small muted">버튼을 누를 때 짧은 소리. 아이폰 무음 모드에서는 나지 않아요.</div>
+      <Seg<'on' | 'off'> value={on ? 'on' : 'off'} onChange={(v) => { setClickOn(v === 'on'); setOn(v === 'on'); if (v === 'on') tick(); }}
+        options={[['on', '켜기'], ['off', '끄기']]} />
+    </div>
+  );
+}
+
 const SWATCHES = ['#5613C8', '#A855F7', '#8B5CF6', '#D946EF', '#EC4899', '#F43F5E', '#F97316', '#EAB308', '#22C55E', '#06B6D4', '#3B82F6', '#FFFFFF'];
 
 function Settings() {
@@ -388,6 +401,7 @@ function Settings() {
         <Seg<OutputPreset> value={s.settings.defaultPreset} onChange={(v) => saveSettings({ defaultPreset: v })}
           options={[...Object.entries(PRESETS).map(([k, p]) => [k, p.label] as [OutputPreset, string]), ['CUSTOM', '커스텀']]} />
       </div>
+      <ClickSetting />
       <div class="card stack">
         <div style="font-weight:600">샘플 프로젝트</div>
         <button class="btn block" onClick={() => { const { led } = createSample(); go(`/led/${led.id}/in`); }}>샘플 프로젝트 추가</button>

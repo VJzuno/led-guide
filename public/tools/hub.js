@@ -99,3 +99,25 @@
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
 })();
+
+/* 5) 클릭음: 앱 본체(src/click.ts)와 같은 소리. 설정 'zuno.click' = '0' 이면 끔 */
+(() => {
+  let ctx = null;
+  const on = () => { try { return localStorage.getItem('zuno.click') !== '0'; } catch (e) { return true; } };
+  const tick = () => {
+    if (!on()) return;
+    try {
+      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+      const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(1500, t); o.frequency.exponentialRampToValueAtTime(650, t + 0.035);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.06);
+    } catch (e) { /* 오디오 막힘 */ }
+  };
+  document.addEventListener('pointerdown', (e) => {
+    const el = e.target && e.target.closest && e.target.closest('button, a[href], label.btn, .btn, .chip, [role="button"], summary');
+    if (el && !el.disabled) tick();
+  }, { capture: true, passive: true });
+})();
