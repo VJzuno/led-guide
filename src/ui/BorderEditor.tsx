@@ -173,9 +173,9 @@ export function BorderEditor({ id }: { id: string }) {
               <button key={t} class="chip" onClick={() => upW(f)}>{t}</button>
             ))}
           </div>
-          {W0.t === 'hole' && <Slider label="보더 두께" value={W0.b} min={0} max={600} step={1} def={0} fmt={(v) => v + 'px'} onChange={(v) => upW((w) => { w.b = v; })} />}
-          <Slider label="페더" value={W0.f} min={0} max={600} step={1} def={120} fmt={(v) => v + 'px'} onChange={(v) => upW((w) => { w.f = v; })} />
-          <Slider label="모서리 라운드" value={W0.r} min={0} max={400} step={1} def={0} fmt={(v) => v + 'px'} onChange={(v) => upW((w) => { w.r = v; })} />
+          {W0.t === 'hole' && <Slider label="보더 두께" value={W0.b} min={0} max={600} step={1} def={0} fmt={(v) => v + 'px'} unit="px" inputMax={LIM} onChange={(v) => upW((w) => { w.b = v; })} />}
+          <Slider label="페더" value={W0.f} min={0} max={600} step={1} def={120} fmt={(v) => v + 'px'} unit="px" inputMax={LIM} onChange={(v) => upW((w) => { w.f = v; })} />
+          <Slider label="모서리 라운드" value={W0.r} min={0} max={400} step={1} def={0} fmt={(v) => v + 'px'} unit="px" inputMax={LIM} onChange={(v) => upW((w) => { w.r = v; })} />
         </div>}
 
         <div class="lbl" style="margin:16px 0 6px">페더 방식</div>
@@ -192,7 +192,7 @@ export function BorderEditor({ id }: { id: string }) {
             <div class="row" style="gap:10px">
               <label class="field" style="flex:none"><span class="lbl">마스크 색</span>
                 <input type="color" class="color-in" value={L.color} onInput={(e) => upL((l) => { l.color = (e.target as HTMLInputElement).value; })} /></label>
-              <div class="grow"><Slider label="불투명도" value={L.opacity} min={0} max={100} step={1} def={100} fmt={(v) => v + '%'} onChange={(v) => upL((l) => { l.opacity = v; })} /></div>
+              <div class="grow"><Slider label="불투명도" value={L.opacity} min={0} max={100} step={1} def={100} fmt={(v) => v + '%'} unit="%" onChange={(v) => upL((l) => { l.opacity = v; })} /></div>
             </div>
           ) : <Toggle on={L.invert} label="반전 (가림 흰색 / 창 검정)" onClick={() => upL((l) => { l.invert = !l.invert; })} />}
           <div class="small muted">{L.mode === 'overlay' ? '보이는 영역은 투명, 가려지는 영역은 마스크 색. LED 아웃풋 위에 그대로 얹으면 돼요.' : '흰색 = 영상이 보이는 영역, 검정 = 가려지는 영역. 루마 매트용.'}</div>

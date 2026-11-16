@@ -520,10 +520,29 @@ export const timeAgo = (t: number) => {
 };
 
 /** 슬라이더 (값 표시 + 탭하면 기본값) */
-export function Slider({ label, value, min, max, step, fmt, def, onChange }: {
+export function Slider({ label, value, min, max, step, fmt, def, onChange, unit, inputMax }: {
   label: string; value: number; min: number; max: number; step: number; def: number;
   fmt: (v: number) => string; onChange: (v: number) => void;
+  /** 단위가 있으면 숫자 직접 입력칸을 보여줌. inputMax = 입력으로는 슬라이더 끝보다 크게도 가능 */
+  unit?: string; inputMax?: number;
 }) {
+  if (unit != null) {
+    const hi = inputMax ?? max;
+    return (
+      <div class="slider">
+        <div class="row">
+          <label class="grow">{label}</label>
+          {value !== def && <button class="chip reset-chip" onClick={() => onChange(def)} aria-label={`${label} 기본값`}>↺</button>}
+          <div class="slider-num">
+            <NumInput value={value} min={min} aria={label} onChange={(v) => onChange(Math.min(hi, Math.max(min, Math.round(v))))} />
+            <span class="unit">{unit}</span>
+          </div>
+        </div>
+        <input type="range" min={min} max={max} step={step} value={Math.min(value, max)}
+          onInput={(e) => onChange(parseFloat((e.target as HTMLInputElement).value))} />
+      </div>
+    );
+  }
   return (
     <div class="slider">
       <div class="row">

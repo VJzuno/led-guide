@@ -595,3 +595,8 @@ body::before {
   animation: toastUp .25s ease-out; }
 .update-toast .btn { min-height: 40px; }
 @keyframes toastUp { from { transform: translateY(16px); opacity: 0; } }
+.slider-num { display: flex; align-items: center; gap: 4px; }
+.slider-num .num-wrap { width: 84px; }
+.slider-num .input { min-height: 36px; padding: 0 8px; font-size: 16px; }
+.slider-num .unit { font: 500 12px var(--f-mono); color: var(--soft); min-width: 16px; }
+.reset-chip { min-height: 32px; padding: 0 9px; }
