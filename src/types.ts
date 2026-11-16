@@ -107,6 +107,8 @@ export interface Led {
     align: Align;
     /** 면별 수동 위치 (향후 드래그 편집용). 값이 있으면 자동 배치보다 우선 */
     manual?: Record<string, { x: number; y: number }>;
+    /** 면별 출력 크기 (늘이기·FULL). 있으면 원래 크기로 그린 면을 이 크기로 늘려서 넣음 */
+    size?: Record<string, { w: number; h: number }>;
     options: GuideOptions;
     doneAt?: number;
   };

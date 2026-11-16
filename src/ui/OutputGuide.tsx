@@ -1,5 +1,5 @@
 import { useStore, getLed, getProject, updateLed } from '../store';
-import { outputLayout, coordsText } from '../layout';
+import { outputLayout, coordsText, fullFit } from '../layout';
 import { copyText } from '../export';
 import type { Led, OutputPreset, Flow, Align } from '../types';
 import { TopBar, NumInput, Seg, Section, OptionToggles, TypoControls, GuidePreview, ExportButtons, LogoPicker, go } from './common';
@@ -33,6 +33,11 @@ export function OutputGuide({ id }: { id: string }) {
 
       {/* 2. 프리뷰 (위치 편집 가능) */}
       <GuidePreview led={l} kind="OUT" motion={false} />
+      <div class="row wrap" style="gap:6px;margin:8px 0 4px">
+        <button class={'chip' + (o.size ? ' on' : '')} onClick={() => up((x) => { const r = fullFit(x); x.output.manual = r.manual; x.output.size = r.size; })}>⛶ FULL (캔버스 꽉 채우기)</button>
+        {o.size && <button class="chip" onClick={() => up((x) => { delete x.output.size; })}>원래 크기로</button>}
+        {o.size && <span class="small muted">면을 늘여서 넣는 중 · 원·로고도 같이 늘어나요</span>}
+      </div>
       <div class="meter"><i style={{ width: Math.min(100, lay.usage * 100) + '%' }} /></div>
       <div class="stat">
         <span>사용률 <b>{(lay.usage * 100).toFixed(1)}%</b></span>

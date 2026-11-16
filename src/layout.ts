@@ -9,6 +9,8 @@ export interface FaceRect {
   /** 캐비닛 수 (픽셀 / 캐비닛 px, 소수 가능) */
   cols: number; rows: number;
   overflow?: boolean;
+  /** 아웃풋에서 늘인 면: 원래 크기로 그린 시트 안의 위치 (x,y,w,h). 있으면 이 영역을 늘려서 x,y,w,h 에 넣음 */
+  src?: { x: number; y: number; w: number; h: number };
 }
 export interface GapRect { x: number; y: number; w: number; h: number }
 
@@ -119,11 +121,20 @@ export function outputLayout(l: Led): Layout {
 
   // 수동 위치가 있으면 우선 (향후 드래그 편집용 구조)
   if (o.manual) for (const f of faces) { const m = o.manual[f.face.id]; if (m) { f.x = m.x; f.y = m.y; } }
+  // 늘이기(크기 지정)가 하나라도 있으면: 모든 면을 인풋 위치·원래 크기로 그린 뒤 늘려서 넣음
+  if (o.size && faces.some((f) => o.size![f.face.id])) {
+    const src = new Map(inp.faces.map((fr) => [fr.face.id, { x: fr.x, y: fr.y, w: fr.w, h: fr.h }]));
+    for (const f of faces) {
+      f.src = src.get(f.face.id);
+      const z = o.size[f.face.id];
+      if (z) { f.w = Math.max(1, Math.round(z.w)); f.h = Math.max(1, Math.round(z.h)); }
+    }
+  }
 
   let cW = 0, cH = 0;
   for (const f of faces) { cW = Math.max(cW, f.x + f.w); cH = Math.max(cH, f.y + f.h); }
 
-  if (o.align === 'center' && !o.manual) {
+  if (o.align === 'center' && !o.manual && !o.size) {
     const dx = Math.max(0, Math.floor((W - cW) / 2)), dy = Math.max(0, Math.floor((H - cH) / 2));
     for (const r of [...faces, ...gaps]) { r.x += dx; r.y += dy; }
   }
@@ -163,3 +174,29 @@ export function coordsText(l: Led, lay: Layout) {
 
 /** iOS Safari 캔버스 최대 픽셀(약 16.7MP) */
 export const MAX_CANVAS_PX = 16_777_216;
+
+/** 아웃풋 FULL: 지금 배치된 면 전체를 캔버스에 꽉 차게 늘림 (가로·세로 따로). 위치·크기를 수동 값으로 돌려줌 */
+export function fullFit(l: Led) {
+  // 기준 배치: 인풋 순서대로 한 줄 (갭 '유지'면 갭 포함), 원래 크기
+  const inp = inputLayout(l);
+  const { w: W, h: H } = outputSize(l);
+  let cx = 0;
+  const base = inp.faces.map((f) => {
+    if (l.output.keepGap && f.face.gapBefore && f.index > 0) cx += l.gapPx;
+    const r = { face: f.face, x: cx, y: f.y, w: f.w, h: f.h };
+    cx += f.w;
+    return r;
+  });
+  const lay = { W, H, faces: base };
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const f of lay.faces) { x0 = Math.min(x0, f.x); y0 = Math.min(y0, f.y); x1 = Math.max(x1, f.x + f.w); y1 = Math.max(y1, f.y + f.h); }
+  const kx = lay.W / Math.max(1, x1 - x0), ky = lay.H / Math.max(1, y1 - y0);
+  const manual: Record<string, { x: number; y: number }> = {}, size: Record<string, { w: number; h: number }> = {};
+  for (const f of lay.faces) {
+    const nx = Math.round((f.x - x0) * kx), ny = Math.round((f.y - y0) * ky);
+    const rx = Math.round((f.x + f.w - x0) * kx), ry = Math.round((f.y + f.h - y0) * ky);
+    manual[f.face.id] = { x: nx, y: ny };
+    size[f.face.id] = { w: rx - nx, h: ry - ny };
+  }
+  return { manual, size };
+}

@@ -96,6 +96,7 @@ function mk(w: number, h: number) {
 }
 
 export function buildLayers(l: Led, lay: Layout, opt: GuideOptions, st: RenderStyle, scale = 1): Layers {
+  if (lay.kind === 'OUT' && lay.faces.some((f) => f.src)) return buildStretched(l, lay, opt, st, scale);
   const W = Math.round(lay.W * scale), H = Math.round(lay.H * scale);
   const base = mk(W, H), top = mk(W, H);
   const C = GUIDE_COLORS;
@@ -126,6 +127,47 @@ export function buildLayers(l: Led, lay: Layout, opt: GuideOptions, st: RenderSt
   }
 
   return { l, lay, opt, accent: st.accent, scale, W, H, base, top, geo };
+}
+
+/** 아웃풋 늘이기(FULL 등): 면을 원래 크기(인풋 위치)로 한 장에 그린 뒤, 면마다 지정한 크기로 늘려서 붙임.
+ *  원·로고도 같이 늘어남 (타원). 태그·바깥 테두리는 아웃풋 캔버스 기준으로 따로 그림 */
+function buildStretched(l: Led, lay: Layout, opt: GuideOptions, st: RenderStyle, scale: number): Layers {
+  let sw = 1, sh = 1;
+  for (const f of lay.faces) { const r = f.src!; sw = Math.max(sw, r.x + r.w); sh = Math.max(sh, r.y + r.h); }
+  // 시트 해상도: 늘였을 때 흐려지지 않게 확대 비율만큼 키움 (최대 2배, 캔버스 한도 안)
+  let k = 1;
+  for (const f of lay.faces) { const r = f.src!; k = Math.max(k, f.w / r.w, f.h / r.h); }
+  k = Math.min(2, k) * scale;
+  k = Math.min(k, Math.sqrt(16_000_000 / (sw * sh)));
+  const sheetLay: Layout = {
+    kind: 'IN', W: sw, H: sh, gaps: [], usage: 1, overflow: false, contentW: sw, contentH: sh,
+    faces: lay.faces.map((f) => ({ ...f, ...f.src!, src: undefined, overflow: false })),
+  };
+  const S = buildLayers(l, sheetLay, { ...opt, headerBars: false, infoTag: false }, st, k);
+  const sheet = mk(S.W, S.H);
+  drawFrame(sheet.getContext('2d')!, S, MOTION.pngTime, 'static');
+
+  const W = Math.round(lay.W * scale), H = Math.round(lay.H * scale);
+  const base = mk(W, H), top = mk(W, H);
+  const b = base.getContext('2d')!;
+  b.fillStyle = GUIDE_COLORS.bg; b.fillRect(0, 0, W, H);
+  b.imageSmoothingQuality = 'high';
+  for (const f of lay.faces) {
+    const r = f.src!;
+    b.drawImage(sheet, r.x * k, r.y * k, r.w * k, r.h * k, f.x * scale, f.y * scale, f.w * scale, f.h * scale);
+  }
+  const u = clamp(Math.min(l.cabinet.pxW, l.cabinet.pxH) / 128, 0.4, 4);
+  b.setTransform(scale, 0, 0, scale, 0, 0);
+  b.strokeStyle = st.accent; b.globalAlpha = 0.5; b.lineWidth = Math.max(1, 2 * u);
+  b.strokeRect(0.5, 0.5, lay.W - 1, lay.H - 1); b.globalAlpha = 1;
+  const t = top.getContext('2d')!;
+  t.setTransform(scale, 0, 0, scale, 0, 0);
+  for (const f of lay.faces) if (f.overflow) {
+    t.strokeStyle = GUIDE_COLORS.overflow; t.lineWidth = 6 * u; t.setLineDash([20 * u, 10 * u]);
+    t.strokeRect(f.x, f.y, f.w, f.h); t.setLineDash([]);
+  }
+  // 원·로고·링은 시트에 이미 그려짐 → 합성 단계에서는 끔
+  return { l, lay, opt: { ...opt, fitCircle: false, logo: false, rings: false }, accent: st.accent, scale, W, H, base, top, geo: [] };
 }
 
 /* ---------- 프레임 합성 ---------- */

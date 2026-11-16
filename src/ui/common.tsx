@@ -229,7 +229,7 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
   const timer = useRef<number>();
   const start = useRef<[number, number]>([0, 0]);
   const t0 = useRef(performance.now());
-  const drag = useRef<{ id: string; ox: number; oy: number; px: number; py: number; w: number; h: number } | null>(null);
+  const drag = useRef<{ id: string; ox: number; oy: number; px: number; py: number; w: number; h: number; rs?: 'br' | 'r' | 'b' } | null>(null);
   const raf = useRef(0);
 
   const lay = layoutFor(led, kind);
@@ -311,10 +311,43 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
     drag.current = { id, ox: f.x, oy: f.y, px: p.x, py: p.y, w: f.w, h: f.h };
     setActive(id);
   };
+  /** 아웃풋: 모서리·변 핸들로 면 크기 늘이기 (Shift = 비율 유지) */
+  const onHandleDown = (e: PointerEvent, id: string, rs: 'br' | 'r' | 'b') => {
+    if (!edit || kind !== 'OUT') return;
+    e.stopPropagation(); e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const f = lay.faces.find((x) => x.face.id === id)!;
+    updateLed(led.id, (x) => {
+      if (!x.output.manual) x.output.manual = Object.fromEntries(lay.faces.map((fr) => [fr.face.id, { x: fr.x, y: fr.y }]));
+      x.output.size = { ...(x.output.size || {}), [id]: { w: f.w, h: f.h } };
+      return x;
+    });
+    const p = toLayout(e);
+    drag.current = { id, ox: f.x, oy: f.y, px: p.x, py: p.y, w: f.w, h: f.h, rs };
+    setActive(id);
+  };
   const onFaceMove = (e: PointerEvent) => {
     const d = drag.current;
     if (!d) return;
     const p = toLayout(e);
+    if (d.rs) {
+      let nw = d.rs === 'b' ? d.w : Math.max(8, Math.round(d.w + p.x - d.px));
+      let nh = d.rs === 'r' ? d.h : Math.max(8, Math.round(d.h + p.y - d.py));
+      if (e.shiftKey && d.rs === 'br') { const k = Math.max(nw / d.w, nh / d.h); nw = Math.round(d.w * k); nh = Math.round(d.h * k); }
+      if (snap) {
+        const th = 12 * p.k;
+        const xs = [lay.W, lay.W / 2], ys = [lay.H, lay.H / 2];
+        for (const f of lay.faces) if (f.face.id !== d.id) { xs.push(f.x, f.x + f.w); ys.push(f.y, f.y + f.h); }
+        const sx = xs.find((v) => Math.abs(d.ox + nw - v) < th); if (sx != null && d.rs !== 'b') nw = Math.round(sx - d.ox);
+        const sy = ys.find((v) => Math.abs(d.oy + nh - v) < th); if (sy != null && d.rs !== 'r') nh = Math.round(sy - d.oy);
+      }
+      cancelAnimationFrame(raf.current);
+      raf.current = requestAnimationFrame(() => updateLed(led.id, (x) => {
+        x.output.size = { ...(x.output.size || {}), [d.id]: { w: nw, h: nh } };
+        return x;
+      }));
+      return;
+    }
     let nx = Math.round(d.ox + p.x - d.px), ny = Math.round(d.oy + p.y - d.py);
     if (snap) ({ x: nx, y: ny } = snapPos(lay, d.id, nx, ny, d.w, d.h, 12 * p.k));
     cancelAnimationFrame(raf.current);
@@ -342,7 +375,11 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
             style={{ left: (f.x / lay.W) * 100 + '%', top: (f.y / lay.H) * 100 + '%', width: (f.w / lay.W) * 100 + '%', height: (f.h / lay.H) * 100 + '%' }}
             onPointerDown={(e) => onFaceDown(e as any, f.face.id)} onPointerMove={(e) => onFaceMove(e as any)}
             onPointerUp={onFaceUp} onPointerCancel={onFaceUp}>
-            <span>{f.face.name} · {f.x},{f.y}</span>
+            <span>{f.face.name} · {f.x},{f.y}{kind === 'OUT' ? ` · ${f.w}×${f.h}` : ''}</span>
+            {kind === 'OUT' && (['r', 'b', 'br'] as const).map((h) => (
+              <i key={h} class={'face-h ' + h} onPointerDown={(e) => onHandleDown(e as any, f.face.id, h)}
+                onPointerMove={(e) => onFaceMove(e as any)} onPointerUp={onFaceUp} onPointerCancel={onFaceUp} />
+            ))}
           </div>
         ))}
         <button class="pv-btn" aria-label="크게 보기" onPointerDown={(e) => e.stopPropagation()} onClick={open}>⤢</button>
@@ -352,7 +389,8 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
           options={[['loop', '▶ 루프'], ['build', '▶ 빌드업'], ['pause', 'PNG']]} />}
         <button class={'chip' + (edit ? ' on' : '')} onClick={() => setEdit(!edit)}>✥ 위치 편집</button>
         {edit && <button class={'chip' + (snap ? ' on' : '')} onClick={() => setSnap(!snap)}>자석 스냅 {snap ? 'ON' : 'OFF'}</button>}
-        {edit && manual && <button class="chip" onClick={() => updateLed(led.id, (x) => { delete x[key].manual; return x; })}>자동 배치</button>}
+        {edit && manual && <button class="chip" onClick={() => updateLed(led.id, (x) => { delete x[key].manual; if (kind === 'OUT') delete x.output.size; return x; })}>자동 배치</button>}
+        {edit && kind === 'OUT' && <span class="small muted">모서리 □를 끌면 크기 조절 · Shift = 비율 유지</span>}
         {kind === 'IN' && led.input.map && <button class={'chip' + (mapOn ? ' on' : '')} onClick={() => setMapOn(!mapOn)}>◧ 인풋맵 겹쳐보기</button>}
         {kind === 'IN' && led.input.map && mapOn && (
           <>
