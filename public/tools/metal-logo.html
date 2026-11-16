@@ -112,14 +112,14 @@ main{display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:14px}
   <div class="grp">
     <h2>재질 · 라이팅</h2>
     <div class="seg" data-key="mat">
-      <button data-v="prism" aria-pressed="true">프리즘</button>
-      <button data-v="chrome">크롬</button>
+      <button data-v="chrome" aria-pressed="true">크롬</button>
       <button data-v="gold">골드</button>
       <button data-v="lav">라벤더</button>
+      <button data-v="concrete">콘크리트</button>
       <button data-v="logo">로고 컬러</button>
     </div>
     <div class="seg" data-key="env">
-      <button data-v="prism" aria-pressed="true">프리즘</button>
+      <button data-v="neutral" aria-pressed="true">뉴트럴</button>
       <button data-v="studio">스튜디오</button>
       <button data-v="neon">퍼플 네온</button>
       <button data-v="hard">하드 콘트라스트</button>
@@ -226,7 +226,7 @@ import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const W = 1920, H = 1080, DUR = 10, HALF = 5;
 const $ = id => document.getElementById(id);
-const S = { mask:'alpha', mat:'prism', env:'prism', dir:1, move:'f', eRot:'inout', eMove:'inout', fps:30, bg:'black' };
+const S = { mask:'alpha', mat:'chrome', env:'neutral', dir:1, move:'f', eRot:'inout', eMove:'inout', fps:30, bg:'black' };
 
 /* ---------- renderer ---------- */
 const canvas = $('cv');
@@ -244,14 +244,12 @@ camera.position.set(0, 0, 22);
 const pmrem = new THREE.PMREMGenerator(renderer);
 
 const ENV = {
-  // 프리즘: 흰 키라이트 + 은은한 R·G·B 패널 → 크롬 위에 무지갯빛이 살짝 번짐
-  prism: { base:0x050505, strips:[
+  // 뉴트럴: 흰·회색 빛만 (색 번짐 없음)
+  neutral: { base:0x050505, strips:[
     [30,5, 0xffffff, 5,   [0,18,4]],
     [3,26, 0xffffff, 7,   [-19,0,7]],
     [3,26, 0xffffff, 5,   [19,2,6]],
-    [1.2,26, 0xff4a5a, 4.5, [-16.5,0,7]],
-    [1.2,26, 0x4a8cff, 4.5, [16.5,2,6]],
-    [24,3, 0x4ae89a, 2, [0,-16,-10]],
+    [24,3, 0xd0d0d0, 1.8, [0,-16,-10]],
     [7,7,  0xffffff, 12,  [9,7,22]],
     [2,18, 0xffffff, 4,   [-8,-4,-20]],
     [50,16, 0xededed, 1.5,[0,7,40]],
@@ -303,7 +301,47 @@ const rim = new THREE.DirectionalLight(0x5613C8, 1.4); rim.position.set(-10, 3, 
 const capMat = new THREE.MeshPhysicalMaterial({ metalness:1, roughness:.14, clearcoat:.4, clearcoatRoughness:.08 });
 const sideMat = new THREE.MeshPhysicalMaterial({ metalness:1, roughness:.2, clearcoat:.2 });
 let logoTex = null;
-const MAT_COLOR = { prism:0xf4f4f8, chrome:0xf2f2f6, gold:0xffc96b, lav:0xb6a8ec, logo:0xffffff };
+/* 콘크리트 질감: 모델 좌표 기반 3D 노이즈 → 색 얼룩·잔기공·미세 요철 (UV 필요 없음, 옆면도 자연스럽게) */
+const concreteU = { value: 0 };
+const NOISE = `
+uniform float uConcrete; varying vec3 vPosL;
+float h3(vec3 p){ p = fract(p*0.3183099 + .1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.0-2.0*f);
+  return mix(mix(mix(h3(i), h3(i+vec3(1,0,0)), f.x), mix(h3(i+vec3(0,1,0)), h3(i+vec3(1,1,0)), f.x), f.y),
+             mix(mix(h3(i+vec3(0,0,1)), h3(i+vec3(1,0,1)), f.x), mix(h3(i+vec3(0,1,1)), h3(i+vec3(1,1,1)), f.x), f.y), f.z); }
+float fbm(vec3 p){ float a = .5, s = 0.0; for (int i = 0; i < 5; i++){ s += a*vn(p); p *= 2.03; a *= .5; } return s; }
+`;
+function addConcrete(m){
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uConcrete = concreteU;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vPosL;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPosL = position;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + NOISE)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        float cBlot = 0.0, cPore = 0.0;
+        if (uConcrete > 0.5) {
+          cBlot = fbm(vPosL*0.9);
+          float grain = vn(vPosL*70.0);
+          float blot2 = fbm(vPosL*2.6 + 3.1);
+          cPore = smoothstep(.86, .95, vn(vPosL*24.0 + 7.3)) * smoothstep(.35, .7, vn(vPosL*2.0));
+          diffuseColor.rgb *= mix(.8, 1.1, cBlot) * mix(.93, 1.04, blot2) * mix(.96, 1.03, grain) * (1.0 - cPore*.45);
+        }`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+        if (uConcrete > 0.5) roughnessFactor = clamp(roughnessFactor + (cBlot - .5)*.18, .55, 1.0);`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        if (uConcrete > 0.5) {
+          float hgt = vn(vPosL*60.0)*.08 + fbm(vPosL*4.0)*.12 - cPore*.5;
+          vec3 dpx = dFdx(-vViewPosition), dpy = dFdy(-vViewPosition);
+          float hx = dFdx(hgt), hy = dFdy(hgt);
+          vec3 r1 = cross(dpy, normal), r2 = cross(normal, dpx);
+          float det = dot(dpx, r1);
+          vec3 grad = sign(det) * (hx*r1 + hy*r2);
+          normal = normalize(abs(det)*normal - grad*.3);
+        }`);
+  };
+}
+addConcrete(capMat); addConcrete(sideMat);
+const MAT_COLOR = { concrete:0x9a9893, chrome:0xf2f2f6, gold:0xffc96b, lav:0xb6a8ec, logo:0xffffff };
 function applyMaterial(){
   const r = +$('rough').value;
   capMat.roughness = r; sideMat.roughness = Math.min(1, r + .08);
@@ -312,15 +350,20 @@ function applyMaterial(){
   sideMat.color.set(S.mat === 'logo' ? MAT_COLOR.chrome : c);
   capMat.map = (S.mat === 'logo') ? logoTex : null;
   capMat.metalness = (S.mat === 'logo') ? .85 : 1;
-  // 프리즘: 얇은 막 간섭(iridescence)으로 보는 각도에 따라 RGB가 은은하게 바뀜
-  const pr = S.mat === 'prism';
-  capMat.iridescence = pr ? .4 : 0; sideMat.iridescence = pr ? .3 : 0;
-  capMat.iridescenceIOR = sideMat.iridescenceIOR = 1.45;
-  capMat.iridescenceThicknessRange = [80, 900]; sideMat.iridescenceThicknessRange = [120, 1000];
+  // 콘크리트: 금속 아님, 거칠게. 결·기공은 셰이더(concreteU)에서
+  const cc = S.mat === 'concrete';
+  concreteU.value = cc ? 1 : 0;
+  if (cc) {
+    capMat.metalness = sideMat.metalness = 0;
+    capMat.roughness = Math.max(.82, r); sideMat.roughness = Math.max(.88, r);
+    capMat.clearcoat = sideMat.clearcoat = 0;
+  } else {
+    sideMat.metalness = 1; capMat.clearcoat = .4; sideMat.clearcoat = .2;
+  }
   capMat.needsUpdate = true; sideMat.needsUpdate = true;
   scene.environment = getEnv(S.env);
-  rim.color.set(S.env === 'hard' ? 0xffffff : S.env === 'prism' ? 0xffffff : 0x5613C8);
-  rim.intensity = S.env === 'prism' ? .5 : 1.4;
+  rim.color.set(S.env === 'hard' ? 0xffffff : S.env === 'neutral' ? 0xffffff : 0x5613C8);
+  rim.intensity = S.env === 'neutral' ? .5 : 1.4;
   renderer.toneMappingExposure = +$('expo').value;
 }
 
@@ -708,11 +751,11 @@ document.querySelector('aside').addEventListener('input', () => { clearTimeout(l
 document.querySelector('aside').addEventListener('click', e => { if (e.target.closest('.seg button')) { clearTimeout(lastTimer); lastTimer = setTimeout(() => lsSet(LAST_KEY, snapshot()), 300); } });
 renderPresets();
 applySnapshot(lsGet(LAST_KEY), false);
-// 기본 재질을 프리즘으로 바꾼 뒤 한 번만: 예전 마지막 설정이 크롬이어도 프리즘으로 시작
+// 프리즘(RGB) 없앤 뒤 한 번만: 크롬 + 뉴트럴 빛(보라·RGB 번짐 없음)으로 시작
 try {
-  if (!localStorage.getItem('metalLogo.prismDefault')) {
-    localStorage.setItem('metalLogo.prismDefault', '1');
-    applySnapshot({ seg: { mat: 'prism', env: 'prism' } }, false);
+  if (!localStorage.getItem('metalLogo.neutralDefault')) {
+    localStorage.setItem('metalLogo.neutralDefault', '1');
+    applySnapshot({ seg: { mat: S.mat === 'prism' ? 'chrome' : S.mat, env: 'neutral' } }, false);
     lsSet(LAST_KEY, snapshot());
   }
 } catch {}
