@@ -21,7 +21,7 @@ export function Menu({ sub }: { sub?: string }) {
     ['/tool/cuesheet', '큐시트 메이커', '곡 번호·제목 썸네일 PNG'],
     ['/recent', '최근 내보낸 파일', `${state.exportsMeta.length}개`],
     ['trash', '휴지통', '삭제한 프로젝트 / LED / 보더 복구'],
-    ['backup', '백업 · 동기화', needsBackup() ? `바뀐 항목 ${changedSinceBackup()}개 · 동기화 필요` : isLinked() ? `구글 드라이브 ${ago(lastDriveSync())}` : `마지막 저장 ${ago(lastBackupAt())}`],
+    ['backup', '동기화', onFirebaseHost() ? (cloudUser() ? `클라우드 동기화 · ${cloudUser()!.email}` : 'Google 로그인하면 폰·PC 실시간 동기화') : needsBackup() ? `바뀐 항목 ${changedSinceBackup()}개 · 동기화 필요` : isLinked() ? `구글 드라이브 ${ago(lastDriveSync())}` : `마지막 저장 ${ago(lastBackupAt())}`],
     ['settings', '설정', '포인트 컬러, 기본 프리셋'],
     ['about', 'About', '앱 소개'],
   ];
@@ -155,10 +155,27 @@ function Backup() {
 
   return (
     <div class="screen">
-      <TopBar title="백업 · 동기화" back="/menu" />
+      <TopBar title={onFirebaseHost() ? '동기화' : '백업 · 동기화'} back="/menu" />
 
-      {onFirebaseHost() ? <CloudCard /> : <><MoveCard /><DriveCard /></>}
+      {onFirebaseHost() ? <>
+        <CloudCard />
+        {/* iCloud 백업은 없앰. 예전 앱 데이터를 옮길 때만 쓰는 파일 불러오기·저장 (접어 둠) */}
+        <details class="card file-backup">
+          <summary><span style="font-weight:600">백업 파일</span> <span class="small muted">· 예전 앱 데이터 옮기기</span></summary>
+          <div class="stack" style="margin-top:12px">
+            <label class={'btn block' + (busy ? ' disabled' : '')}>백업 파일 불러오기
+              <input type="file" accept="application/json,.json" style="display:none" disabled={busy} onChange={load} />
+            </label>
+            <button class="btn block" disabled={busy} onClick={save}>백업 파일로 저장</button>
+            <div class="small muted"><code>ZUNO-backup_…json</code> 파일을 고르면 항목마다 더 최근에 고친 쪽이 남아요. 로그인돼 있으면 불러온 내용이 바로 다른 기기에도 들어가요.</div>
+          </div>
+        </details>
+      </> : <><MoveCard /><DriveCard /><OldICloud /></>}
+    </div>
+  );
 
+  function OldICloud() {
+    return <>
       <div class="section-title">iCloud 파일 백업</div>
 
       <div class={'card stack' + (needsBackup() ? ' accent' : '')}>
@@ -194,8 +211,8 @@ function Backup() {
         </div>
         <div class="small muted">내보낸 PNG·영상은 백업에 들어가지 않습니다. 저장할 때 <b>"이미지/비디오 저장"</b>으로 사진 앱에 넣으면 iCloud 사진으로 Mac에 자동으로 들어옵니다.</div>
       </div>
-    </div>
-  );
+    </>;
+  }
 }
 
 

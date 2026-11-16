@@ -1,54 +1,64 @@
-/* ZUNO 도구 공통 뉴모피즘 (다크) — 앱 본체(src/theme.css)와 같은 면 색·그림자
+/* ZUNO 도구 공통 스타일: 리퀴드 글래스 — 앱 본체(src/theme.css)와 같은 빛 배경 + 반투명 유리 면
  * hub.js 가 각 도구 <head> 맨 끝에 붙임. 화면에서만 적용 (인쇄·PDF·PNG 출력은 그대로) */
 @media screen {
   :root {
-    --nm-bg: #15131b;
-    --nm-hi: rgba(255,255,255,.06);
-    --nm-lo: rgba(0,0,0,.7);
-    --nm-raise: 6px 6px 14px var(--nm-lo), -5px -5px 12px var(--nm-hi), inset 0 1px 0 rgba(255,255,255,.035);
-    --nm-raise-sm: 3px 3px 7px var(--nm-lo), -3px -3px 6px var(--nm-hi), inset 0 1px 0 rgba(255,255,255,.035);
-    --nm-press: inset 3px 3px 7px var(--nm-lo), inset -3px -3px 6px var(--nm-hi);
-    --nm-sep: rgba(255,255,255,.06);
-    /* 도구별 변수 → 같은 면 색 */
-    --bg: var(--nm-bg); --panel: var(--nm-bg); --btn: var(--nm-bg); --field: var(--nm-bg);
-    --black: var(--nm-bg); --ink: var(--nm-bg);
-    --border: var(--nm-sep); --line: var(--nm-sep);
+    --zg-bg: #06050b;
+    --zg-fill: linear-gradient(155deg, rgba(255,255,255,.11) 0%, rgba(255,255,255,.035) 55%, rgba(255,255,255,.06) 100%);
+    --zg-line: rgba(255,255,255,.13);
+    --zg-blur: blur(22px) saturate(170%);
+    --zg-spec: inset 0 1px 0 rgba(255,255,255,.24), inset 0 -1px 0 rgba(255,255,255,.05);
+    --zg-shadow: 0 12px 32px rgba(0,0,0,.45);
+    --zg-well: rgba(0,0,0,.32);
+    --zg-well-spec: inset 0 1px 2px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.06);
+    /* 도구별 변수 → 투명 유리 */
+    --bg: transparent; --panel: rgba(255,255,255,.05); --btn: rgba(255,255,255,.07); --field: var(--zg-well);
+    --black: transparent; --ink: var(--zg-well);
+    --border: var(--zg-line); --line: var(--zg-line);
   }
-  html, body { background: var(--nm-bg) !important; }
+  html { background: var(--zg-bg) !important; }
+  body {
+    background:
+      radial-gradient(55% 40% at 12% 6%, rgba(86,19,200,.5) 0%, transparent 70%),
+      radial-gradient(45% 35% at 95% 35%, rgba(139,124,199,.2) 0%, transparent 70%),
+      radial-gradient(60% 45% at 70% 100%, rgba(86,19,200,.32) 0%, transparent 70%),
+      var(--zg-bg) !important;
+    background-attachment: fixed !important;
+  }
 
-  /* 올라온 면 */
+  /* 유리 면 */
   .col-list, .col-style, .home-top, .show-card, #showMenu, .modal, .show-bar,
   .group, .container, .modal-content, .entry-row, .time-edit-panel, .multi-select-bar {
-    background: var(--nm-bg) !important; border-color: transparent !important; box-shadow: var(--nm-raise) !important; border-radius: 18px;
+    background: var(--zg-fill) !important; border: 1px solid var(--zg-line) !important; border-radius: 20px;
+    -webkit-backdrop-filter: var(--zg-blur); backdrop-filter: var(--zg-blur);
+    box-shadow: var(--zg-spec), var(--zg-shadow) !important;
   }
-  .col-list > .panel-header, #itemList, .list-actions, .show-title { background: var(--nm-bg) !important; }
-  aside { background: var(--nm-bg) !important; border-color: var(--nm-sep) !important; }
+  .col-list > .panel-header, #itemList, .list-actions, .show-title { background: transparent !important; }
+  aside { background: rgba(255,255,255,.03) !important; border-color: rgba(255,255,255,.08) !important;
+    -webkit-backdrop-filter: var(--zg-blur); backdrop-filter: var(--zg-blur); }
   .calendar-grid { background: transparent !important; gap: 6px !important; }
-  .calendar-day { background: var(--nm-bg) !important; border-color: transparent !important; box-shadow: var(--nm-raise-sm); border-radius: 10px; }
-  .calendar-day.empty { background: transparent !important; box-shadow: none; }
+  .calendar-day { background: rgba(255,255,255,.05) !important; border: 1px solid rgba(255,255,255,.08) !important; border-radius: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }
+  .calendar-day.empty { background: transparent !important; border-color: transparent !important; box-shadow: none; }
 
-  /* 버튼: 올라온 면, 누르면 들어감 */
-  button, .btn, .chip, .seg button, .btn-edit-time {
-    border-color: transparent !important; box-shadow: var(--nm-raise-sm); transition: box-shadow .15s;
+  /* 버튼: 유리 */
+  button, .btn, .chip {
+    border: 1px solid var(--zg-line) !important; box-shadow: var(--zg-spec), 0 4px 14px rgba(0,0,0,.3);
+    -webkit-backdrop-filter: var(--zg-blur); backdrop-filter: var(--zg-blur); transition: background .15s, transform .12s;
   }
-  button:not([class*="primary"]):not(.on):not(.active):not(.selected):not([aria-pressed="true"]), .btn:not(.primary):not(.on), .chip:not(.on) { background-color: var(--nm-bg); }
-  button:active, .btn:active, .chip:active { box-shadow: var(--nm-press) !important; transform: none !important; }
+  button:not([class*="primary"]):not(.on):not(.active):not(.selected):not([aria-pressed="true"]), .btn:not(.primary):not(.on), .chip:not(.on) { background: var(--zg-fill); }
+  button:active, .btn:active, .chip:active { transform: scale(.97) !important; }
   button:disabled { box-shadow: none; }
-  .seg { background: var(--nm-bg) !important; box-shadow: var(--nm-press); border-color: transparent !important; border-radius: 14px; padding: 4px; gap: 4px; overflow: visible; }
-  .seg button { box-shadow: none !important; border-radius: 10px; }
+  .seg { background: var(--zg-well) !important; border: 1px solid rgba(255,255,255,.08) !important; box-shadow: var(--zg-well-spec); border-radius: 14px; padding: 4px; gap: 4px; overflow: visible; }
+  .seg button { box-shadow: none !important; border-color: transparent !important; border-radius: 10px; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .seg button:not(.on):not(.active):not([aria-pressed="true"]) { background: transparent !important; }
-  .play { box-shadow: var(--nm-raise-sm) !important; }
 
-  /* 입력: 들어간 면 */
+  /* 입력: 어두운 유리 */
   input[type=text], input[type=number], input[type=search], input[type=date], input[type=time], input[type=color],
   select, textarea, #showSearch, .dialog-input {
-    background-color: var(--nm-bg) !important; border-color: transparent !important; box-shadow: var(--nm-press) !important; border-radius: 10px;
+    background-color: var(--zg-well) !important; border: 1px solid rgba(255,255,255,.08) !important; box-shadow: var(--zg-well-spec) !important; border-radius: 11px;
   }
-  input:focus, select:focus, textarea:focus { box-shadow: var(--nm-press), 0 0 0 1.5px #5613C8 !important; outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: #7a45e6 !important; box-shadow: var(--zg-well-spec), 0 0 0 3px rgba(86,19,200,.3) !important; outline: none; }
 
-  /* 미리보기 창은 어둡게 들어간 우물 */
-  .preview-wrap, .show-preview, .monitor, .stage, .gallery-cell, .item-thumb {
-    border-color: transparent !important; box-shadow: var(--nm-press);
-  }
-  .winrow { background: var(--nm-bg) !important; border-color: transparent !important; box-shadow: var(--nm-press); }
+  /* 미리보기 창 */
+  .preview-wrap, .show-preview, .monitor, .stage, .gallery-cell, .item-thumb { border-color: rgba(255,255,255,.1) !important; }
+  .winrow { background: var(--zg-well) !important; border: 1px solid rgba(255,255,255,.08) !important; }
 }
