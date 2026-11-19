@@ -115,7 +115,7 @@ main{display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:14px}
       <button data-v="chrome" aria-pressed="true">크롬</button>
       <button data-v="gold">골드</button>
       <button data-v="lav">라벤더</button>
-      <button data-v="concrete">콘크리트</button>
+      <button data-v="glass">글라스</button>
       <button data-v="logo">로고 컬러</button>
     </div>
     <div class="seg" data-key="env">
@@ -301,48 +301,9 @@ const rim = new THREE.DirectionalLight(0x5613C8, 1.4); rim.position.set(-10, 3, 
 const capMat = new THREE.MeshPhysicalMaterial({ metalness:1, roughness:.14, clearcoat:.4, clearcoatRoughness:.08 });
 const sideMat = new THREE.MeshPhysicalMaterial({ metalness:1, roughness:.2, clearcoat:.2 });
 let logoTex = null;
-/* 콘크리트 질감: 모델 좌표 기반 3D 노이즈 → 색 얼룩·잔기공·미세 요철 (UV 필요 없음, 옆면도 자연스럽게) */
-const concreteU = { value: 0 };
-const NOISE = `
-uniform float uConcrete; varying vec3 vPosL;
-float h3(vec3 p){ p = fract(p*0.3183099 + .1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
-float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.0-2.0*f);
-  return mix(mix(mix(h3(i), h3(i+vec3(1,0,0)), f.x), mix(h3(i+vec3(0,1,0)), h3(i+vec3(1,1,0)), f.x), f.y),
-             mix(mix(h3(i+vec3(0,0,1)), h3(i+vec3(1,0,1)), f.x), mix(h3(i+vec3(0,1,1)), h3(i+vec3(1,1,1)), f.x), f.y), f.z); }
-float fbm(vec3 p){ float a = .5, s = 0.0; for (int i = 0; i < 5; i++){ s += a*vn(p); p *= 2.03; a *= .5; } return s; }
-`;
-function addConcrete(m){
-  m.onBeforeCompile = (sh) => {
-    sh.uniforms.uConcrete = concreteU;
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vPosL;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPosL = position;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + NOISE)
-      .replace('#include <color_fragment>', `#include <color_fragment>
-        float cBlot = 0.0, cPore = 0.0;
-        if (uConcrete > 0.5) {
-          cBlot = fbm(vPosL*0.9);
-          float grain = vn(vPosL*70.0);
-          float blot2 = fbm(vPosL*2.6 + 3.1);
-          cPore = smoothstep(.86, .95, vn(vPosL*24.0 + 7.3)) * smoothstep(.35, .7, vn(vPosL*2.0));
-          diffuseColor.rgb *= mix(.8, 1.1, cBlot) * mix(.93, 1.04, blot2) * mix(.96, 1.03, grain) * (1.0 - cPore*.45);
-        }`)
-      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        if (uConcrete > 0.5) roughnessFactor = clamp(roughnessFactor + (cBlot - .5)*.18, .55, 1.0);`)
-      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-        if (uConcrete > 0.5) {
-          float hgt = vn(vPosL*60.0)*.08 + fbm(vPosL*4.0)*.12 - cPore*.5;
-          vec3 dpx = dFdx(-vViewPosition), dpy = dFdy(-vViewPosition);
-          float hx = dFdx(hgt), hy = dFdy(hgt);
-          vec3 r1 = cross(dpy, normal), r2 = cross(normal, dpx);
-          float det = dot(dpx, r1);
-          vec3 grad = sign(det) * (hx*r1 + hy*r2);
-          normal = normalize(abs(det)*normal - grad*.3);
-        }`);
-  };
-}
-addConcrete(capMat); addConcrete(sideMat);
-const MAT_COLOR = { concrete:0x9a9893, chrome:0xf2f2f6, gold:0xffc96b, lav:0xb6a8ec, logo:0xffffff };
+const MAT_COLOR = { glass:0xffffff, chrome:0xf2f2f6, gold:0xffc96b, lav:0xb6a8ec, logo:0xffffff };
 function applyMaterial(){
+  if (S.mat === 'concrete') S.mat = 'glass'; // 예전 프리셋 호환
   const r = +$('rough').value;
   capMat.roughness = r; sideMat.roughness = Math.min(1, r + .08);
   const c = MAT_COLOR[S.mat];
@@ -350,15 +311,29 @@ function applyMaterial(){
   sideMat.color.set(S.mat === 'logo' ? MAT_COLOR.chrome : c);
   capMat.map = (S.mat === 'logo') ? logoTex : null;
   capMat.metalness = (S.mat === 'logo') ? .85 : 1;
-  // 콘크리트: 금속 아님, 거칠게. 결·기공은 셰이더(concreteU)에서
-  const cc = S.mat === 'concrete';
-  concreteU.value = cc ? 1 : 0;
-  if (cc) {
+  // 글라스: 금속 아님, 빛이 통과(transmission). 거칠기 슬라이더는 반투명(서리) 정도로
+  const gl = S.mat === 'glass';
+  for (const m of [capMat, sideMat]) {
+    // 검정 배경 위 유리: 몸체는 거의 비치고(어둡게), 표면 반사·하이라이트만 빛으로 더해짐
+    m.transmission = 0;
+    m.ior = gl ? 1.6 : 1.5;
+    m.iridescence = gl ? .35 : 0;        // 유리 표면의 얇은 무지개 막
+    m.iridescenceIOR = 1.3;
+    m.specularIntensity = 1;
+    m.envMapIntensity = gl ? 3 : 1;
+    m.transparent = gl;
+    m.blending = gl ? THREE.AdditiveBlending : THREE.NormalBlending;
+    m.depthWrite = !gl;
+    m.side = gl ? THREE.DoubleSide : THREE.FrontSide;
+  }
+  if (gl) {
     capMat.metalness = sideMat.metalness = 0;
-    capMat.roughness = Math.max(.82, r); sideMat.roughness = Math.max(.88, r);
-    capMat.clearcoat = sideMat.clearcoat = 0;
+    capMat.color.set(0x14121c); sideMat.color.set(0x0c0b12); // 몸체는 아주 어둡게 → 반사만 보임
+    capMat.roughness = Math.min(.3, r * .25); sideMat.roughness = Math.min(.3, r * .25);
+    capMat.clearcoat = sideMat.clearcoat = 1; capMat.clearcoatRoughness = sideMat.clearcoatRoughness = .03;
   } else {
     sideMat.metalness = 1; capMat.clearcoat = .4; sideMat.clearcoat = .2;
+    capMat.clearcoatRoughness = .08; sideMat.clearcoatRoughness = 0;
   }
   capMat.needsUpdate = true; sideMat.needsUpdate = true;
   scene.environment = getEnv(S.env);
@@ -751,6 +726,8 @@ document.querySelector('aside').addEventListener('input', () => { clearTimeout(l
 document.querySelector('aside').addEventListener('click', e => { if (e.target.closest('.seg button')) { clearTimeout(lastTimer); lastTimer = setTimeout(() => lsSet(LAST_KEY, snapshot()), 300); } });
 renderPresets();
 applySnapshot(lsGet(LAST_KEY), false);
+// 콘크리트 없앰: 예전에 콘크리트로 저장된 상태는 글라스로
+if (S.mat === 'concrete') { applySnapshot({ seg: { mat: 'glass' } }, false); lsSet(LAST_KEY, snapshot()); }
 // 프리즘(RGB) 없앤 뒤 한 번만: 크롬 + 뉴트럴 빛(보라·RGB 번짐 없음)으로 시작
 try {
   if (!localStorage.getItem('metalLogo.neutralDefault')) {

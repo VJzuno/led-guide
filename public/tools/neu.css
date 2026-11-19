@@ -62,3 +62,20 @@
   .preview-wrap, .show-preview, .monitor, .stage, .gallery-cell, .item-thumb { border-color: rgba(255,255,255,.1) !important; }
   .winrow { background: var(--zg-well) !important; border: 1px solid rgba(255,255,255,.08) !important; }
 }
+
+/* 심플 다크 (2026-11-19): 유리·글로우·배경 빛 걷어내고 가볍게 — 앱 본체와 같은 톤 */
+@media screen {
+  :root {
+    --zg-bg: #000;
+    --zg-fill: rgba(255,255,255,.025);
+    --zg-line: rgba(255,255,255,.08);
+    --zg-blur: none;
+    --zg-spec: 0 0 0 0 transparent;
+    --zg-shadow: 0 0 0 0 transparent;
+    --zg-well: rgba(255,255,255,.04);
+    --zg-well-spec: 0 0 0 0 transparent;
+  }
+  html, body { background: #000 !important; }
+  * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  button, .btn, input, select, textarea { box-shadow: none !important; }
+}

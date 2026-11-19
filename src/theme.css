@@ -606,3 +606,71 @@ body::before {
 .face-h.r { right: -6px; top: 20%; bottom: 20%; width: 12px; cursor: ew-resize; }
 .face-h.b { bottom: -6px; left: 20%; right: 20%; height: 12px; cursor: ns-resize; }
 .face-box.on .face-h.r, .face-box.on .face-h.b, .face-h.r:hover, .face-h.b:hover { background: color-mix(in srgb, var(--accent) 60%, transparent); border-radius: 6px; }
+
+/* ================================================================
+ * 심플 다크 (2026-11-19): 유리·글로우·그라데이션을 걷어내고 가볍게
+ * 블랙 바탕 + 얇은 선 + 평평한 면 + 포인트 컬러는 꼭 필요한 곳만
+ * ================================================================ */
+:root {
+  --g-fill: rgba(255,255,255,.025);
+  --g-line: rgba(255,255,255,.08);
+  --g-blur: none;
+  --g-spec: 0 0 0 0 transparent;
+  --g-shadow: 0 0 0 0 transparent;
+  --g-glow: 0 0 0 0 transparent;
+  --g-well: rgba(255,255,255,.04);
+  --g-well-spec: 0 0 0 0 transparent;
+  --g-accent: var(--accent);
+  --sep: rgba(255,255,255,.06);
+  --line: rgba(255,255,255,.1);
+}
+/* 배경 빛 제거: 순수 블랙 */
+body::before { background: #000 !important; }
+html, body { background: #000; }
+
+/* 면: 거의 투명, 얇은 선, 그림자 없음 */
+.card, details.sec, .modal-box, .proj-card, .show-card, .relink, .banner {
+  background: var(--g-fill) !important; border: 1px solid var(--g-line) !important; border-radius: 16px !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; box-shadow: none !important;
+}
+.card.accent, .banner { border-color: color-mix(in srgb, var(--accent) 55%, transparent) !important; }
+.toast { background: #fff !important; color: #000 !important; border: 0 !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* 버튼: 평평하게, 글자 가볍게 */
+.btn { background: transparent !important; border: 1px solid var(--line) !important; box-shadow: none !important; font-weight: 500 !important; transition: background .12s, opacity .12s; }
+.btn:active { transform: none; background: rgba(255,255,255,.06) !important; }
+.btn.primary { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+.btn.ghost { border-color: transparent !important; }
+.btn.danger { color: var(--danger) !important; border-color: color-mix(in srgb, var(--danger) 35%, transparent) !important; }
+.btn.danger-fill { background: var(--danger) !important; border-color: var(--danger) !important; }
+
+/* 입력칸 */
+.input, select.input { background: transparent !important; border: 1px solid var(--line) !important; box-shadow: none !important; }
+.input:focus { border-color: var(--accent) !important; box-shadow: none !important; }
+
+/* 세그먼트·칩·토글 */
+.seg { background: transparent !important; border: 1px solid var(--line) !important; box-shadow: none !important; }
+.seg button { font-weight: 500 !important; }
+.seg button.on { background: rgba(255,255,255,.08) !important; color: #fff !important; box-shadow: inset 0 -2px 0 var(--accent) !important; }
+.chip { font-weight: 500 !important; box-shadow: none !important; }
+.chip.on { background: transparent !important; border-color: var(--accent) !important; color: #fff !important; box-shadow: none !important; }
+.toggle { background: transparent !important; border: 1px solid var(--line) !important; box-shadow: none !important; }
+.toggle .dot { border-width: 1.5px; }
+
+/* 탭바: 선 하나, 활성은 색만 */
+.tabbar { background: rgba(0,0,0,.92) !important; border-top: 1px solid var(--sep) !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.tabbar a.on .tab-ic { background: transparent !important; box-shadow: none !important; color: var(--accent); }
+.tabbar a.on { color: #fff !important; }
+
+/* 슬라이더·미터 */
+.slider input[type=range]::-webkit-slider-runnable-track { height: 2px !important; background: rgba(255,255,255,.18) !important; box-shadow: none !important; }
+.slider input[type=range]::-webkit-slider-thumb { width: 18px !important; height: 18px !important; margin-top: -8px !important; background: #fff !important; border: 0 !important; box-shadow: none !important; }
+.meter { height: 3px !important; background: rgba(255,255,255,.1) !important; }
+.meter > i { background: var(--accent) !important; box-shadow: none !important; }
+
+/* 타이틀·섹션 제목은 조금 작고 가볍게 */
+.topbar h1 { font-size: 22px; letter-spacing: .03em; }
+.section-title, details.sec > summary { color: var(--soft) !important; letter-spacing: .06em; }
+.tag { border-color: var(--line) !important; }
+.tag.done { background: transparent !important; color: var(--accent) !important; border-color: var(--accent) !important; }
+.preview { border-color: var(--sep) !important; box-shadow: none !important; }
