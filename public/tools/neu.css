@@ -79,3 +79,26 @@
   * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   button, .btn, input, select, textarea { box-shadow: none !important; }
 }
+
+/* 레졸룸 아레나 컬러 (2026-11-23): 앱 본체와 같은 색. 각 도구의 색 변수를 아레나 색으로 */
+@media screen {
+  :root {
+    --zg-bg: #1A1816; --zg-fill: #2C2C2C; --zg-line: #383637; --zg-well: #111111;
+    /* 공통 이름 */
+    --bg: #1A1816 !important; --panel: #2C2C2C !important; --line: #383637 !important; --border: #383637 !important;
+    --fg: #D9D9D9 !important; --text: #D9D9D9 !important; --muted: #8E8E8E !important; --soft: #D9D9D9 !important;
+    --accent: #7FFFD2 !important; --accent-ink: #0B0B0B !important; --accent-text: #7FFFD2 !important;
+    --accent-hover: #A6FFE0 !important; --accent-soft: #7FFFD2 !important; --accent-bg: rgba(127,255,210,.16) !important;
+    --deep: #2A5345 !important; --field: #111111 !important; --well: #111111 !important; --btn: #3A3A3A !important;
+    --ring: rgba(127,255,210,.35) !important;
+    /* 3D 로고 도구 */
+    --ink: #2C2C2C !important; --black: #1A1816 !important; --purple: #5A8579 !important; --lav: #8E8E8E !important;
+    --lav-l: #D9D9D9 !important; --slate: #3A3A3A !important; --point: #7FFFD2 !important; --point-hi: #A6FFE0 !important;
+  }
+  html, body { background: #1A1816 !important; color: #D9D9D9; }
+  /* 민트 위 글자는 검정으로 */
+  [aria-pressed="true"], button.on, .seg button[aria-pressed="true"], .btn-primary, button.primary { color: #0B0B0B !important; }
+}
+@media screen {
+  input:focus, select:focus, textarea:focus { border-color: #7FFFD2 !important; box-shadow: none !important; }
+}
