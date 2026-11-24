@@ -110,6 +110,7 @@ function App() {
   else if (parts[0] === 'logo') { page = <ToolFrame src="tools/metal-logo.html" title="3D 로고" />; tab = 'logo'; }
   else if (parts[0] === 'report') { page = <ToolFrame src="tools/worklog.html" title="SPVS 보고서" />; tab = 'report'; }
   else if (parts[0] === 'tool' && parts[1] === 'cuesheet') { page = <ToolFrame src="tools/cuesheet.html" title="큐시트 메이커" back="/menu" />; tab = 'menu'; }
+  else if (parts[0] === 'tool' && parts[1] === 'framedelay') { page = <ToolFrame src="tools/frame-delay.html" title="프레임 딜레이 테스트" back="/menu" />; tab = 'menu'; }
   else if (parts[0] === 'recent') { page = <Recent />; tab = 'menu'; }
   else if (parts[0] === 'menu') { page = <Menu sub={parts[1]} />; tab = 'menu'; }
   else page = <Projects />;

@@ -32,7 +32,7 @@ export function ToolFrame({ src, title, back }: { src: string; title: string; ba
           <span class="tool-title">{title}</span>
         </div>
       ) : <AppHeader title={title} />}
-      <iframe ref={ref} class="tool-frame" src={src} title={title} />
+      <iframe ref={ref} class="tool-frame" src={src} title={title} allow="fullscreen" allowFullScreen />
     </div>
   );
 }

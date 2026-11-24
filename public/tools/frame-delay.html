@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1A1816">
+<link rel="icon" href="../icons/favicon-32-v2.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon-v2.png">
+<script src="hub.js"></script>
+<title>프레임 딜레이 테스트</title>
+<style>
+/* 위: 조작 패널 / 아래: 테스트 화면(캔버스). 전체화면이면 테스트 화면만 */
+:root {
+  --bg: #1A1816; --panel: #2C2C2C; --btn: #3A3A3A; --field: #111111; --line: #383637;
+  --fg: #D9D9D9; --muted: #8E8E8E; --accent: #7FFFD2; --accent-ink: #0B0B0B;
+  --font-ui: "IBM Plex Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.45 var(--font-ui); }
+body { display: flex; flex-direction: column; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; }
+.label { font-size: 12px; color: var(--muted); min-width: 52px; }
+.seg { display: flex; background: var(--field); border: 1px solid var(--line); border-radius: 4px; padding: 2px; gap: 2px; }
+.seg button { border: 0; background: transparent; color: var(--fg); min-height: 32px; padding: 0 12px; border-radius: 3px; font: inherit; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+button.b { min-height: 36px; padding: 0 14px; border-radius: 4px; border: 1px solid var(--line); background: var(--btn); color: var(--fg); font: inherit; font-weight: 600; }
+button.b.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+input[type=number] { width: 130px; min-height: 34px; background: var(--field); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; font: 14px var(--font-num); }
+.stat { font: 12px var(--font-num); color: var(--muted); }
+.stat b { color: var(--fg); font-weight: 600; }
+.result { font: 600 15px var(--font-num); color: var(--accent); }
+details summary { cursor: pointer; font-weight: 600; font-size: 13px; }
+details p { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+.stage { position: relative; flex: 1; min-height: 240px; background: #000; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hint { position: absolute; right: 8px; bottom: 8px; font: 11px var(--font-num); color: #666; pointer-events: none; }
+/* 전체화면(또는 아이폰용 꽉 채우기) */
+body.full { padding: 0; }
+body.full .panel { display: none; }
+body.full .stage { border: 0; border-radius: 0; position: fixed; inset: 0; z-index: 10; }
+</style>
+</head>
+<body>
+<div class="panel" id="ctl">
+  <div class="row">
+    <span class="label">모드</span>
+    <div class="seg" id="modeSeg">
+      <button data-v="counter" aria-pressed="true">카운터</button>
+      <button data-v="flash">플래시 + 비프</button>
+      <button data-v="sweep">스윕 바</button>
+    </div>
+  </div>
+  <div class="row">
+    <span class="label">기준 FPS</span>
+    <div class="seg" id="fpsSeg">
+      <button data-v="60" aria-pressed="true">60</button>
+      <button data-v="59.94">59.94</button>
+      <button data-v="50">50</button>
+      <button data-v="30">30</button>
+      <button data-v="25">25</button>
+    </div>
+  </div>
+  <div class="row">
+    <button class="b primary" id="fullBtn">전체화면</button>
+    <button class="b" id="pauseBtn">일시정지</button>
+    <button class="b" id="resetBtn">0으로</button>
+    <span class="grow"></span>
+    <span class="stat">화면 주사율 <b id="hz">–</b> Hz · 끊김 <b id="drops">0</b></span>
+  </div>
+  <div class="row">
+    <span class="label">딜레이 계산</span>
+    <input type="number" id="srcMs" inputmode="decimal" placeholder="소스 초 12.345" step="0.001">
+    <input type="number" id="ledMs" inputmode="decimal" placeholder="LED 초 12.278" step="0.001">
+    <span class="result" id="calcOut">–</span>
+  </div>
+  <details>
+    <summary>사용법</summary>
+    <p><b>카운터</b>: 소스 화면(노트북·모니터)과 LED에 같은 화면을 띄우고, 둘이 한 장에 나오게 사진(연사)을 찍어요. 두 시간의 초 값(예: 12.345, 12.278)을 위 칸에 넣으면 딜레이가 ms와 프레임으로 나와요. 숫자가 번지면 아래 칸 줄(1의 자리·10의 자리 프레임)로 읽으세요.</p>
+    <p><b>플래시 + 비프</b>: 1초마다 흰 화면과 삑 소리가 같은 순간에 나요. 영상으로 찍어서 소리와 빛의 차이를 보면 AV 싱크를 확인할 수 있어요. 소리는 화면을 한 번 누른 뒤부터 나요.</p>
+    <p><b>스윕 바</b>: 세로 막대가 일정한 속도로 지나가요. 찢어짐(티어링)이나 끊김을 눈으로 확인할 때 써요.</p>
+    <p>전체화면에서는 화면을 두 번 눌러 나가요. 키보드: F 전체화면 · Space 일시정지 · 1·2·3 모드.</p>
+  </details>
+</div>
+<div class="stage" id="stage">
+  <canvas id="cv"></canvas>
+  <div class="hint" id="hint"></div>
+</div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const KEY = 'frameDelay.v1';
+  const S = Object.assign({ mode: 'counter', fps: 60 }, (() => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } })());
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ mode: S.mode, fps: S.fps })); } catch (e) { /* ignore */ } };
+
+  const cv = $('cv'), ctx = cv.getContext('2d', { alpha: false });
+  let W = 0, H = 0, dpr = 1;
+  const resize = () => {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    W = Math.max(1, Math.round(r.width * dpr)); H = Math.max(1, Math.round(r.height * dpr));
+    cv.width = W; cv.height = H;
+  };
+  new ResizeObserver(resize).observe(cv);
+
+  // 시간: 시작 기준 경과(ms). 일시정지 중엔 멈춤
+  let t0 = performance.now(), pausedAt = 0, paused = false, frame = 0;
+  const elapsed = (now) => (paused ? pausedAt : now) - t0;
+
+  // 주사율 측정
+  const iv = []; let last = 0, drops = 0, hzAt = 0;
+  const measure = (now) => {
+    if (last) {
+      const d = now - last;
+      iv.push(d); if (iv.length > 120) iv.shift();
+      const avg = iv.reduce((a, b) => a + b, 0) / iv.length;
+      if (iv.length > 30 && d > avg * 1.6 && d < 500) { drops++; $('drops').textContent = drops; }
+      if (now - hzAt > 500) hzAt = now, $('hz').textContent = (1000 / avg).toFixed(1);
+    }
+    last = now;
+  };
+
+  // 소리 (플래시 모드)
+  let ac = null;
+  const unlockAudio = () => {
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { /* 막힘 */ }
+  };
+  const beep = () => {
+    if (!ac || ac.state !== 'running') return;
+    const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'square'; o.frequency.value = 1000;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.002);
+    g.gain.setValueAtTime(0.25, t + 0.045); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.06);
+  };
+
+  const pad = (n, l = 2) => String(Math.floor(n)).padStart(l, '0');
+  const tc = (ms) => `${pad(ms / 60000)}:${pad((ms / 1000) % 60)}.${pad(ms % 1000, 3)}`;
+  const font = (px, w = 700) => `${w} ${Math.round(px)}px "JetBrains Mono", ui-monospace, Menlo, monospace`;
+  const MINT = '#7FFFD2';
+
+  // 프레임 번호 = 경과 시간 × 기준 FPS (기기 주사율과 상관없이 같은 값 → 두 화면 비교 가능)
+  const fnum = (ms) => Math.floor(ms * S.fps / 1000);
+
+  function cells(y, h, count, lit, label) {
+    const gap = Math.max(2, W * 0.004), x0 = W * 0.06, w = (W * 0.88 - gap * (count - 1)) / count;
+    ctx.font = font(h * 0.42, 600); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let i = 0; i < count; i++) {
+      const x = x0 + i * (w + gap);
+      ctx.fillStyle = i === lit ? MINT : '#1c1c1c';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = i === lit ? '#000' : '#555';
+      ctx.fillText(String(i), x + w / 2, y + h / 2);
+    }
+    ctx.textAlign = 'left'; ctx.fillStyle = '#777'; ctx.font = font(Math.max(10, h * 0.28), 400);
+    ctx.fillText(label, x0, y - h * 0.3);
+  }
+
+  function drawCounter(ms) {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    const f = fnum(ms);
+    const big = Math.min(W / 7.2, H * 0.3);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff'; ctx.font = font(big);
+    ctx.fillText(tc(ms), W / 2, H * 0.24);
+    ctx.fillStyle = MINT; ctx.font = font(big * 0.55);
+    ctx.fillText(`F ${pad(f, 6)}`, W / 2, H * 0.47);
+    ctx.fillStyle = '#777'; ctx.font = font(Math.max(10, big * 0.16), 400);
+    ctx.fillText(`@ ${S.fps} fps`, W / 2, H * 0.6);
+    const ch = Math.min(H * 0.1, W * 0.07);
+    cells(H * 0.7, ch, 10, f % 10, '프레임 1의 자리');
+    cells(H * 0.7 + ch * 1.6, ch, 10, Math.floor(f / 10) % 10, '프레임 10의 자리');
+  }
+
+  let lastSec = -1, flashUntil = 0;
+  function drawFlash(ms, now) {
+    const sec = Math.floor(ms / 1000);
+    if (!paused && sec !== lastSec) { lastSec = sec; flashUntil = now + 2 * 1000 / S.fps; beep(); }
+    const on = now < flashUntil;
+    ctx.fillStyle = on ? '#fff' : '#000'; ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = on ? '#000' : '#444'; ctx.font = font(Math.min(W / 8, H * 0.2));
+    ctx.fillText(tc(ms), W / 2, H / 2);
+    // 1초 안의 위치 (원형 진행)
+    const p = (ms % 1000) / 1000, r = Math.min(W, H) * 0.08;
+    ctx.strokeStyle = on ? '#000' : '#333'; ctx.lineWidth = r * 0.25;
+    ctx.beginPath(); ctx.arc(W / 2, H * 0.78, r, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2); ctx.stroke();
+    if (!ac || ac.state !== 'running') { ctx.fillStyle = '#888'; ctx.font = font(Math.max(11, H * 0.03), 400); ctx.fillText('화면을 한 번 누르면 소리가 나요', W / 2, H * 0.92); }
+  }
+
+  function drawSweep(ms) {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    const f = fnum(ms), period = Math.round(S.fps * 2); // 2초에 한 번 가로지름
+    const step = W / period, x = (f % period) * step, bw = Math.max(4, step * 2);
+    // 눈금
+    ctx.fillStyle = '#222';
+    for (let i = 0; i <= 20; i++) ctx.fillRect(Math.round(i * W / 20), 0, 1, H);
+    ctx.fillStyle = '#fff'; ctx.fillRect(x, 0, bw, H * 0.62);
+    ctx.fillStyle = MINT; ctx.fillRect(W - x - bw, H * 0.62, bw, H * 0.38);
+    ctx.fillStyle = '#888'; ctx.font = font(Math.max(11, H * 0.04), 600); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(`${tc(ms)}  F ${pad(f, 6)}`, 12, 12);
+  }
+
+  function loop(now) {
+    measure(now);
+    if (!paused) frame++;
+    const ms = elapsed(now);
+    if (S.mode === 'flash') drawFlash(ms, now); else if (S.mode === 'sweep') drawSweep(ms); else drawCounter(ms);
+    requestAnimationFrame(loop);
+  }
+
+  // 조작
+  const seg = (id, key, conv) => {
+    const el = $(id);
+    const sync = () => el.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(conv(b.dataset.v) === S[key])));
+    el.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; S[key] = conv(b.dataset.v); save(); sync(); calc(); });
+    sync();
+    return sync;
+  };
+  const syncMode = seg('modeSeg', 'mode', String);
+  seg('fpsSeg', 'fps', Number);
+
+  const togglePause = () => {
+    const now = performance.now();
+    if (paused) { t0 += now - pausedAt; paused = false; } else { pausedAt = now; paused = true; }
+    $('pauseBtn').textContent = paused ? '계속' : '일시정지';
+  };
+  $('pauseBtn').onclick = togglePause;
+  $('resetBtn').onclick = () => { const now = performance.now(); t0 = now; pausedAt = now; lastSec = -1; drops = 0; $('drops').textContent = '0'; };
+
+  const body = document.body, stage = $('stage');
+  const enterFull = async () => {
+    unlockAudio();
+    body.classList.add('full');
+    try { if (stage.requestFullscreen) await stage.requestFullscreen(); else if (stage.webkitRequestFullscreen) stage.webkitRequestFullscreen(); } catch (e) { /* 아이폰 등: CSS로 꽉 채움 */ }
+    $('hint').textContent = '두 번 눌러 나가기';
+    setTimeout(() => { $('hint').textContent = ''; }, 2500);
+  };
+  const exitFull = () => {
+    body.classList.remove('full');
+    try { if (document.fullscreenElement) document.exitFullscreen(); else if (document.webkitFullscreenElement) document.webkitExitFullscreen(); } catch (e) { /* ignore */ }
+  };
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) body.classList.remove('full'); });
+  document.addEventListener('webkitfullscreenchange', () => { if (!document.webkitFullscreenElement) body.classList.remove('full'); });
+  $('fullBtn').onclick = enterFull;
+  stage.addEventListener('pointerdown', unlockAudio);
+  stage.addEventListener('dblclick', () => (body.classList.contains('full') ? exitFull() : enterFull()));
+  addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'f' || e.key === 'F') { body.classList.contains('full') ? exitFull() : enterFull(); }
+    else if (e.key === ' ') { e.preventDefault(); togglePause(); }
+    else if (e.key === 'Escape') exitFull();
+    else if ('123'.includes(e.key)) { S.mode = ['counter', 'flash', 'sweep'][+e.key - 1]; save(); syncMode(); }
+  });
+
+  // 딜레이 계산: 사진 속 두 타임코드의 초 값
+  const calc = () => {
+    const a = parseFloat($('srcMs').value), b = parseFloat($('ledMs').value);
+    if (!isFinite(a) || !isFinite(b)) { $('calcOut').textContent = '–'; return; }
+    const d = Math.abs(a - b) * 1000, fr = d * S.fps / 1000;
+    $('calcOut').textContent = `${d.toFixed(0)} ms · ${fr.toFixed(1)} 프레임 @${S.fps}`;
+  };
+  $('srcMs').addEventListener('input', calc);
+  $('ledMs').addEventListener('input', calc);
+
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

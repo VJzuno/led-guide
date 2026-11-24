@@ -20,6 +20,7 @@ export function Menu({ sub }: { sub?: string }) {
   if (sub === 'settings') return <Settings />;
   const items: [string, string, string][] = [
     ['/tool/cuesheet', '큐시트 메이커', '곡 번호·제목 썸네일 PNG'],
+    ['/tool/framedelay', '프레임 딜레이 테스트', '소스 ↔ LED 지연 · AV 싱크 · 끊김 확인'],
     ['/recent', '최근 내보낸 파일', `${state.exportsMeta.length}개`],
     ['trash', '휴지통', '삭제한 프로젝트 / LED / 보더 복구'],
     ['backup', '동기화', onFirebaseHost() ? (cloudUser() ? `클라우드 동기화 · ${cloudUser()!.email}` : 'Google 로그인하면 폰·PC 실시간 동기화') : needsBackup() ? `바뀐 항목 ${changedSinceBackup()}개 · 동기화 필요` : isLinked() ? `구글 드라이브 ${ago(lastDriveSync())}` : `마지막 저장 ${ago(lastBackupAt())}`],
