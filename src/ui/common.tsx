@@ -213,6 +213,8 @@ const PREVIEW_MAX_W = 1600;
  *  - 루프/빌드업/PNG 모양 미리보기
  *  - 위치 편집: 면을 마우스·터치로 끌어서 배치, 자석 스냅 on/off
  *  - 꾹 누르기 또는 ⤢ 버튼 = 원본 해상도 전체화면 */
+type Box = { x: number; y: number; w: number; h: number };
+
 export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: GuideKind; motion?: boolean }) {
   const s = useStore();
   const ref = useRef<HTMLCanvasElement>(null);
@@ -224,6 +226,8 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
   const [edit, setEdit] = useState(false);
   const [snap, setSnap] = useState(true);
   const [active, setActive] = useState<string | null>(null);
+  const [all, setAll] = useState(false);
+  const group = useRef<{ px: number; py: number; b: Box; fs: (Box & { id: string })[]; rs?: 'br' | 'r' | 'b' } | null>(null);
   const [mapOn, setMapOn] = useState(false);
   const [mapAlpha, setMapAlpha] = useState(0.5);
   const timer = useRef<number>();
@@ -358,6 +362,57 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
   };
   const onFaceUp = () => { drag.current = null; setActive(null); };
 
+  /* ---------- 아웃풋 전체 선택: 모든 면을 한 묶음으로 이동·크기 조절 ---------- */
+  const groupAll = all && edit && kind === 'OUT' && lay.faces.length > 0;
+  const bbox = (): Box => {
+    const x = Math.min(...lay.faces.map((f) => f.x)), y = Math.min(...lay.faces.map((f) => f.y));
+    return { x, y, w: Math.max(...lay.faces.map((f) => f.x + f.w)) - x, h: Math.max(...lay.faces.map((f) => f.y + f.h)) - y };
+  };
+  /** 묶음 기준(b)에서 새 묶음(nb)으로: 각 면 위치·크기를 같은 비율로 */
+  const applyGroup = (fs: (Box & { id: string })[], b: Box, nb: Box) => {
+    const kx = nb.w / b.w, ky = nb.h / b.h;
+    updateLed(led.id, (x) => {
+      x.output.manual = Object.fromEntries(fs.map((f) => [f.id, { x: Math.round(nb.x + (f.x - b.x) * kx), y: Math.round(nb.y + (f.y - b.y) * ky) }]));
+      x.output.size = Object.fromEntries(fs.map((f) => [f.id, { w: Math.max(1, Math.round(f.w * kx)), h: Math.max(1, Math.round(f.h * ky)) }]));
+      return x;
+    });
+  };
+  const snapshot = () => lay.faces.map((f) => ({ id: f.face.id, x: f.x, y: f.y, w: f.w, h: f.h }));
+  const setGroupBox = (nb: Box) => applyGroup(snapshot(), bbox(), nb);
+  const onGroupDown = (e: PointerEvent, rs?: 'br' | 'r' | 'b') => {
+    e.stopPropagation(); e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const p = toLayout(e);
+    group.current = { px: p.x, py: p.y, b: bbox(), fs: snapshot(), rs };
+    setActive('__all');
+  };
+  const onGroupMove = (e: PointerEvent) => {
+    const g = group.current;
+    if (!g) return;
+    const p = toLayout(e), th = 12 * p.k, b = g.b;
+    let nb: Box;
+    if (g.rs) {
+      let w = g.rs === 'b' ? b.w : Math.max(8, b.w + p.x - g.px);
+      let h = g.rs === 'r' ? b.h : Math.max(8, b.h + p.y - g.py);
+      if (g.rs === 'br') { const k = Math.max(w / b.w, h / b.h); w = b.w * k; h = b.h * k; } // 전체는 비율 유지
+      if (snap) {
+        if (g.rs !== 'b' && Math.abs(b.x + w - lay.W) < th) { const k = (lay.W - b.x) / w; w *= k; if (g.rs === 'br') h *= k; }
+        else if (g.rs !== 'r' && Math.abs(b.y + h - lay.H) < th) { const k = (lay.H - b.y) / h; h *= k; if (g.rs === 'br') w *= k; }
+      }
+      nb = { x: b.x, y: b.y, w, h };
+    } else {
+      let x = b.x + p.x - g.px, y = b.y + p.y - g.py;
+      if (snap) {
+        const sx = [0, lay.W - b.w, (lay.W - b.w) / 2].find((v) => Math.abs(x - v) < th); if (sx != null) x = sx;
+        const sy = [0, lay.H - b.h, (lay.H - b.h) / 2].find((v) => Math.abs(y - v) < th); if (sy != null) y = sy;
+      }
+      nb = { x, y, w: b.w, h: b.h };
+    }
+    cancelAnimationFrame(raf.current);
+    raf.current = requestAnimationFrame(() => applyGroup(g.fs, b, nb));
+  };
+  const onGroupUp = () => { group.current = null; setActive(null); };
+
   return (
     <div class="preview-wrap">
       <div
@@ -371,7 +426,7 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
         <canvas ref={ref} />
         {kind === 'IN' && mapOn && <MapOverlay led={led} W={lay.W} H={lay.H} opacity={mapAlpha} />}
         {edit && lay.faces.map((f) => (
-          <div key={f.face.id} class={'face-box' + (active === f.face.id ? ' on' : '') + (f.overflow ? ' over' : '')}
+          <div key={f.face.id} class={'face-box' + (active === f.face.id ? ' on' : '') + (f.overflow ? ' over' : '') + (groupAll ? ' in-group' : '')}
             style={{ left: (f.x / lay.W) * 100 + '%', top: (f.y / lay.H) * 100 + '%', width: (f.w / lay.W) * 100 + '%', height: (f.h / lay.H) * 100 + '%' }}
             onPointerDown={(e) => onFaceDown(e as any, f.face.id)} onPointerMove={(e) => onFaceMove(e as any)}
             onPointerUp={onFaceUp} onPointerCancel={onFaceUp}>
@@ -382,6 +437,16 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
             ))}
           </div>
         ))}
+        {groupAll && (() => { const b = bbox(); return (
+          <div class={'face-box group' + (active === '__all' ? ' on' : '')}
+            style={{ left: (b.x / lay.W) * 100 + '%', top: (b.y / lay.H) * 100 + '%', width: (b.w / lay.W) * 100 + '%', height: (b.h / lay.H) * 100 + '%' }}
+            onPointerDown={(e) => onGroupDown(e as any)} onPointerMove={(e) => onGroupMove(e as any)} onPointerUp={onGroupUp} onPointerCancel={onGroupUp}>
+            <span>전체 {lay.faces.length}면 · {Math.round(b.x)},{Math.round(b.y)} · {Math.round(b.w)}×{Math.round(b.h)}</span>
+            {(['r', 'b', 'br'] as const).map((h) => (
+              <i key={h} class={'face-h ' + h} onPointerDown={(e) => onGroupDown(e as any, h)}
+                onPointerMove={(e) => onGroupMove(e as any)} onPointerUp={onGroupUp} onPointerCancel={onGroupUp} />
+            ))}
+          </div>); })()}
         <button class="pv-btn" aria-label="크게 보기" onPointerDown={(e) => e.stopPropagation()} onClick={open}>⤢</button>
       </div>
       <div class="pv-bar">
@@ -390,7 +455,8 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
         <button class={'chip' + (edit ? ' on' : '')} onClick={() => setEdit(!edit)}>✥ 위치 편집</button>
         {edit && <button class={'chip' + (snap ? ' on' : '')} onClick={() => setSnap(!snap)}>자석 스냅 {snap ? 'ON' : 'OFF'}</button>}
         {edit && manual && <button class="chip" onClick={() => updateLed(led.id, (x) => { delete x[key].manual; if (kind === 'OUT') delete x.output.size; return x; })}>자동 배치</button>}
-        {edit && kind === 'OUT' && <span class="small muted">모서리 □를 끌면 크기 조절 · Shift = 비율 유지</span>}
+        {edit && kind === 'OUT' && <button class={'chip' + (all ? ' on' : '')} onClick={() => setAll(!all)}>▣ 전체 선택</button>}
+        {edit && kind === 'OUT' && !groupAll && <span class="small muted">모서리 □를 끌면 크기 조절 · Shift = 비율 유지</span>}
         {kind === 'IN' && led.input.map && <button class={'chip' + (mapOn ? ' on' : '')} onClick={() => setMapOn(!mapOn)}>◧ 인풋맵 겹쳐보기</button>}
         {kind === 'IN' && led.input.map && mapOn && (
           <>
@@ -400,6 +466,19 @@ export function GuidePreview({ led, kind, motion = true }: { led: Led; kind: Gui
           </>
         )}
       </div>
+      {groupAll && (() => { const b = bbox(); const W = Math.round(b.w), H = Math.round(b.h); const f0 = lay.faces[0]; const k0 = f0.w / Math.max(1, f0.face.w); /* 원래 면 크기 대비 배율 */ return (
+        <div class="pv-bar group-bar">
+          <span class="small muted">전체 크기</span>
+          <NumInput value={W} min={8} aria="전체 W" onChange={(v) => setGroupBox({ x: b.x, y: b.y, w: v, h: b.h * (v / b.w) })} />
+          <span class="x">×</span>
+          <NumInput value={H} min={8} aria="전체 H" onChange={(v) => setGroupBox({ x: b.x, y: b.y, w: b.w * (v / b.h), h: v })} />
+          <NumInput value={Math.round(k0 * 100)} min={1} aria="배율 %" onChange={(v) => { const r = v / 100 / k0; setGroupBox({ x: b.x, y: b.y, w: b.w * r, h: b.h * r }); }} />
+          <span class="small muted">%</span>
+          <button class="chip" onClick={() => { const k = lay.W / b.w; setGroupBox({ x: 0, y: b.y, w: lay.W, h: b.h * k }); }}>폭 맞춤</button>
+          <button class="chip" onClick={() => { const k = lay.H / b.h; setGroupBox({ x: b.x, y: 0, w: b.w * k, h: lay.H }); }}>높이 맞춤</button>
+          <button class="chip" onClick={() => setGroupBox({ x: (lay.W - b.w) / 2, y: (lay.H - b.h) / 2, w: b.w, h: b.h })}>가운데</button>
+          <span class="small muted">묶음을 끌면 이동 · 모서리 □ = 비율 유지 크기</span>
+        </div>); })()}
       {err && <div class="small" style="color:var(--danger);margin-top:6px">{err}</div>}
       {view && <Viewer src={view} onClose={() => setView(null)} />}
     </div>

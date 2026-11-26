@@ -775,3 +775,10 @@ details.sec:not([open]) > summary { border-radius: 6px; }
 .ah-round { color: #0B0B0B !important; }
 .bwin.sel { outline-color: var(--ar-mint) !important; }
 .btag, .bh { background: var(--ar-mint) !important; color: #0B0B0B !important; }
+
+/* 아웃풋 전체 선택: 묶음 상자 */
+.face-box.in-group { pointer-events: none; opacity: .55; }
+.face-box.group { border: 2px solid var(--ar-mint); background: color-mix(in srgb, var(--ar-mint) 8%, transparent); z-index: 3; }
+.face-box.group span { background: var(--ar-mint); color: #0B0B0B; }
+.group-bar { margin-top: 6px; }
+.group-bar .num-input, .group-bar input { width: 84px; }
