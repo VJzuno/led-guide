@@ -116,6 +116,16 @@ function setShows(pid: string, fn: (ss: Show[]) => Show[]) {
   const p = getProject(pid);
   if (p) saveProject({ ...p, shows: fn(showsOf(p).map((s) => ({ ...s }))) });
 }
+/** LED를 다른 공연으로 옮김. 'new' = LED 이름으로 새 공연을 만들어 그리로 */
+export function moveLedToShow(id: string, sid: string | 'new') {
+  const l = getLed(id);
+  if (!l) return;
+  let target = sid;
+  if (sid === 'new') { const s = addShow(l.projectId); updateShow(l.projectId, s.id, { name: l.name || s.name }); target = s.id; }
+  updateLed(id, (x) => ({ ...x, showId: target }));
+  return target;
+}
+
 export function addShow(pid: string): Show {
   const p = getProject(pid)!;
   const ss = showsOf(p);

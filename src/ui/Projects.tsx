@@ -3,7 +3,7 @@ import {
   useStore, liveProjects, ledsOf, createProject, updateProject, duplicateProject, trashProject, getProject,
   addLed, duplicateLed, trashLed, toast, ask, getLed,
   bordersOf, addBorder, newBorderSet, duplicateBorder, trashBorder,
-  showsOf, ledsOfShow, bordersOfShow, showSize, addShow, updateShow, removeShow, duplicateShow, newLedInShow, syncShowBorders,
+  showsOf, ledsOfShow, bordersOfShow, showSize, addShow, updateShow, removeShow, duplicateShow, newLedInShow, syncShowBorders, moveLedToShow,
 } from '../store';
 import { useEffect } from 'preact/hooks';
 import type { Show } from '../types';
@@ -164,7 +164,7 @@ function ShowBlock({ pid, show, S, canDelete }: { pid: string; show: Show; S: Re
               <div class="row" style="gap:4px" onClick={(e) => e.stopPropagation()}>
                 <a class={'tag' + (l.input.doneAt ? ' done' : '')} href={`#/led/${l.id}/in`} style="text-decoration:none">IN</a>
                 <a class={'tag' + (l.output.doneAt ? ' done' : '')} href={`#/led/${l.id}/out`} style="text-decoration:none">OUT</a>
-                <LedMenu id={l.id} />
+                <LedMenu id={l.id} pid={pid} sid={show.id} />
               </div>
             )}
           </div>
@@ -205,11 +205,24 @@ function BorderMenu({ id }: { id: string }) {
   );
 }
 
-function LedMenu({ id }: { id: string }) {
-  const [open, setOpen] = useState(false);
-  if (!open) return <button class="btn icon ghost" aria-label="LED 메뉴" onClick={() => setOpen(true)}>⋯</button>;
+function LedMenu({ id, pid, sid }: { id: string; pid: string; sid: string }) {
+  const [open, setOpen] = useState<false | 'menu' | 'move'>(false);
+  if (!open) return <button class="btn icon ghost" aria-label="LED 메뉴" onClick={() => setOpen('menu')}>⋯</button>;
+  const p = getProject(pid);
+  if (open === 'move') {
+    const others = p ? showsOf(p).filter((s) => s.id !== sid) : [];
+    const move = (to: string | 'new') => { moveLedToShow(id, to); setOpen(false); toast(to === 'new' ? '새 공연으로 옮김' : '공연 옮김'); };
+    return (
+      <div class="row" style="gap:4px;flex-wrap:wrap;justify-content:flex-end">
+        {others.map((s) => <button key={s.id} class="chip" onClick={() => move(s.id)}>{s.name}</button>)}
+        <button class="chip on" onClick={() => move('new')}>+ 새 공연</button>
+        <button class="chip" onClick={() => setOpen(false)}>✕</button>
+      </div>
+    );
+  }
   return (
     <div class="row" style="gap:4px">
+      <button class="chip" onClick={() => setOpen('move')}>공연 옮기기</button>
       <button class="chip" onClick={() => { duplicateLed(id); setOpen(false); toast('LED 복제됨'); }}>복제</button>
       <button class="chip" style="color:var(--danger)" onClick={() => { trashLed(id); toast('휴지통으로 이동'); }}>삭제</button>
       <button class="chip" onClick={() => setOpen(false)}>✕</button>
