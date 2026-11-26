@@ -3,7 +3,7 @@ import {
   useStore, liveProjects, ledsOf, createProject, updateProject, duplicateProject, trashProject, getProject,
   addLed, duplicateLed, trashLed, toast, ask, getLed,
   bordersOf, addBorder, newBorderSet, duplicateBorder, trashBorder,
-  showsOf, ledsOfShow, bordersOfShow, showSize, addShow, updateShow, removeShow, duplicateShow, newLedInShow, syncShowBorders, moveLedToShow,
+  showsOf, ledsOfShow, bordersOfShow, showSize, addShow, updateShow, removeShow, duplicateShow, newLedInShow, syncShowBorders, moveLedToShow, moveShow, moveLed,
 } from '../store';
 import { useEffect } from 'preact/hooks';
 import type { Show } from '../types';
@@ -136,6 +136,8 @@ function ShowBlock({ pid, show, S, canDelete }: { pid: string; show: Show; S: Re
         <div class="stack show-menu">
           <input class="input" value={show.name} aria-label="공연 이름" onInput={(e) => updateShow(pid, show.id, { name: (e.target as HTMLInputElement).value })} />
           <div class="row wrap" style="gap:6px">
+            <button class="btn" aria-label="공연 위로" onClick={() => moveShow(pid, show.id, -1)}>▲ 위로</button>
+            <button class="btn" aria-label="공연 아래로" onClick={() => moveShow(pid, show.id, 1)}>▼ 아래로</button>
             <button class="btn" onClick={() => { duplicateShow(pid, show.id); setMenu(false); toast('공연 복제됨'); }}>복제</button>
             {canDelete && <button class="btn danger" onClick={async () => {
               if (await ask(`"${show.name}" 공연을 삭제할까요?\n안의 LED ${leds.length}개 · 보더 ${borders.length}개는 휴지통으로 갑니다.`, '삭제')) { removeShow(pid, show.id); toast('공연 삭제됨'); }
@@ -222,6 +224,8 @@ function LedMenu({ id, pid, sid }: { id: string; pid: string; sid: string }) {
   }
   return (
     <div class="row" style="gap:4px">
+      <button class="chip" aria-label="LED 위로" onClick={() => moveLed(id, -1)}>▲</button>
+      <button class="chip" aria-label="LED 아래로" onClick={() => moveLed(id, 1)}>▼</button>
       <button class="chip" onClick={() => setOpen('move')}>공연 옮기기</button>
       <button class="chip" onClick={() => { duplicateLed(id); setOpen(false); toast('LED 복제됨'); }}>복제</button>
       <button class="chip" style="color:var(--danger)" onClick={() => { trashLed(id); toast('휴지통으로 이동'); }}>삭제</button>

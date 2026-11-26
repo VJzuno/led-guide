@@ -116,6 +116,28 @@ function setShows(pid: string, fn: (ss: Show[]) => Show[]) {
   const p = getProject(pid);
   if (p) saveProject({ ...p, shows: fn(showsOf(p).map((s) => ({ ...s }))) });
 }
+/** 공연 순서 바꾸기 (dir -1 = 위로, 1 = 아래로) */
+export function moveShow(pid: string, sid: string, dir: -1 | 1) {
+  setShows(pid, (l) => {
+    const i = l.findIndex((s) => s.id === sid), j = i + dir;
+    if (i < 0 || j < 0 || j >= l.length) return l;
+    [l[i], l[j]] = [l[j], l[i]];
+    return l.map((s, k) => ({ ...s, order: k }));
+  });
+}
+/** 공연 안에서 LED 순서 바꾸기. 맨 위 LED가 공연 기준 해상도 */
+export function moveLed(id: string, dir: -1 | 1) {
+  const l = getLed(id);
+  const p = l && getProject(l.projectId);
+  if (!l || !p) return;
+  const list = ledsOfShow(p.id, showKey(p, l.showId));
+  const i = list.findIndex((x) => x.id === id), j = i + dir;
+  if (j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  const base = Math.min(...list.map((x) => x.order));
+  list.forEach((x, k) => { if (x.order !== base + k) updateLed(x.id, (y) => ({ ...y, order: base + k })); });
+}
+
 /** LED를 다른 공연으로 옮김. 'new' = LED 이름으로 새 공연을 만들어 그리로 */
 export function moveLedToShow(id: string, sid: string | 'new') {
   const l = getLed(id);
