@@ -2,7 +2,7 @@
  * hub.js 가 각 도구 <head> 맨 끝에 붙임. 화면에서만 적용 (인쇄·PDF·PNG 출력은 그대로) */
 @media screen {
   :root {
-    --zg-bg: #06050b;
+    --zg-bg: #1A1816;
     --zg-fill: linear-gradient(155deg, rgba(255,255,255,.11) 0%, rgba(255,255,255,.035) 55%, rgba(255,255,255,.06) 100%);
     --zg-line: rgba(255,255,255,.13);
     --zg-blur: blur(22px) saturate(170%);
@@ -18,9 +18,9 @@
   html { background: var(--zg-bg) !important; }
   body {
     background:
-      radial-gradient(55% 40% at 12% 6%, rgba(86,19,200,.5) 0%, transparent 70%),
-      radial-gradient(45% 35% at 95% 35%, rgba(139,124,199,.2) 0%, transparent 70%),
-      radial-gradient(60% 45% at 70% 100%, rgba(86,19,200,.32) 0%, transparent 70%),
+      radial-gradient(55% 40% at 12% 6%, rgba(127,255,210,.5) 0%, transparent 70%),
+      radial-gradient(45% 35% at 95% 35%, rgba(217,217,217,.2) 0%, transparent 70%),
+      radial-gradient(60% 45% at 70% 100%, rgba(127,255,210,.32) 0%, transparent 70%),
       var(--zg-bg) !important;
     background-attachment: fixed !important;
   }
@@ -56,7 +56,7 @@
   select, textarea, #showSearch, .dialog-input {
     background-color: var(--zg-well) !important; border: 1px solid rgba(255,255,255,.08) !important; box-shadow: var(--zg-well-spec) !important; border-radius: 11px;
   }
-  input:focus, select:focus, textarea:focus { border-color: #7a45e6 !important; box-shadow: var(--zg-well-spec), 0 0 0 3px rgba(86,19,200,.3) !important; outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: #A6FFE0 !important; box-shadow: var(--zg-well-spec), 0 0 0 3px rgba(127,255,210,.3) !important; outline: none; }
 
   /* 미리보기 창 */
   .preview-wrap, .show-preview, .monitor, .stage, .gallery-cell, .item-thumb { border-color: rgba(255,255,255,.1) !important; }
@@ -97,7 +97,7 @@
   }
   html, body { background: #1A1816 !important; color: #D9D9D9; }
   /* 민트 위 글자는 검정으로 */
-  [aria-pressed="true"], button.on, .seg button[aria-pressed="true"], .btn-primary, button.primary { color: #0B0B0B !important; }
+  [aria-pressed="true"], button.on, .seg button[aria-pressed="true"], .btn-primary, button.primary, .btn-apply-time { color: #0B0B0B !important; }
 }
 @media screen {
   input:focus, select:focus, textarea:focus { border-color: #7FFFD2 !important; box-shadow: none !important; }

@@ -1,14 +1,14 @@
 /* ============ 앱 UI 컬러 (여기만 바꾸면 화면 색이 바뀜) ============ */
 :root {
   --bg: #000000;
-  --bg-1: #0E0B1D;   /* 카드 */
-  --bg-2: #2A1E4D;   /* 강조 면 */
-  --line: #3A3A52;   /* 테두리 */
-  --mid: #5A3B8C;
-  --soft: #8B7CC7;   /* 보조 텍스트 */
-  --text-2: #C9C2E3;
+  --bg-1: #2C2C2C;   /* 카드 */
+  --bg-2: #2A5345;   /* 강조 면 */
+  --line: #383637;   /* 테두리 */
+  --mid: #5A8579;
+  --soft: #8E8E8E;   /* 보조 텍스트 */
+  --text-2: #D9D9D9;
   --text: #FFFFFF;
-  --accent: #5613C8; /* 포인트 (설정에서 변경 가능) */
+  --accent: #7FFFD2; /* 포인트 (설정에서 변경 가능) */
   --danger: #FF4D6D;
   --ok: #4ADE80;
 
@@ -151,7 +151,7 @@ table.coords td.r, table.coords th.r { text-align: right; }
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
   height: calc(var(--tab-h) + var(--tabpad)); padding: 4px calc(var(--sar) + 6px) var(--tabpad) calc(var(--sal) + 6px);
   background: rgba(10,8,22,.92); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border-top: 1px solid rgba(139,124,199,.18); display: flex;
+  border-top: 1px solid rgba(217,217,217,.18); display: flex;
 }
 .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none; color: var(--soft); font-size: 11.5px; font-weight: 600; min-height: 44px; }
 .tabbar a .tab-ic { width: 54px; height: 32px; border-radius: 12px; display: grid; place-items: center; transition: background .15s; }
@@ -286,7 +286,7 @@ label.btn.disabled { opacity: .35; pointer-events: none; }
 .calc-bar button.eq { background: var(--accent); border-color: var(--accent); }
 
 /* 여러 개 선택 */
-.sel-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--tab-h) + var(--tabpad)); z-index: 60; padding: 8px calc(var(--sar) + 12px) 8px calc(var(--sal) + 12px); background: rgba(14,11,29,.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--accent); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sel-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--tab-h) + var(--tabpad)); z-index: 60; padding: 8px calc(var(--sar) + 12px) 8px calc(var(--sal) + 12px); background: rgba(44,44,44,.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--accent); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .sel-bar .count { font: 600 13px var(--f-mono); color: var(--accent); margin-right: auto; }
 .sel-bar .btn { min-height: 40px; padding: 0 12px; font-size: 13px; }
 .screen.selecting { padding-bottom: calc(var(--tab-h) + var(--tabpad) + 120px); }
@@ -345,25 +345,25 @@ label.btn.disabled { opacity: .35; pointer-events: none; }
 
 /* ---------- 보더 편집 ---------- */
 .border-stage { position: relative; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
-  background-color: #0E0B1D;
-  background-image: linear-gradient(45deg, #1B1530 25%, transparent 25%), linear-gradient(-45deg, #1B1530 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1B1530 75%), linear-gradient(-45deg, transparent 75%, #1B1530 75%);
+  background-color: #2C2C2C;
+  background-image: linear-gradient(45deg, #3A3A3A 25%, transparent 25%), linear-gradient(-45deg, #3A3A3A 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #3A3A3A 75%), linear-gradient(-45deg, transparent 75%, #3A3A3A 75%);
   background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0; }
 .border-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .border-stage .map-overlay { position: absolute; inset: 0; object-fit: fill; pointer-events: none; }
-.bwin { position: absolute; outline: 1px solid rgba(139,124,199,.8); cursor: move; touch-action: none; }
-.bwin.sel { outline: 2px solid #8B7CC7; z-index: 2; }
+.bwin { position: absolute; outline: 1px solid rgba(217,217,217,.8); cursor: move; touch-action: none; }
+.bwin.sel { outline: 2px solid #8E8E8E; z-index: 2; }
 .bwin.block { outline-color: rgba(255,77,109,.85); background: repeating-linear-gradient(45deg, rgba(255,77,109,.10) 0 6px, transparent 6px 12px); }
 .bwin.block.sel { outline: 2px solid var(--danger); }
-.bhole { position: absolute; border: 1px dashed rgba(139,124,199,.7); pointer-events: none; }
-.btag { position: absolute; left: 0; top: 0; transform: translateY(-100%); background: #8B7CC7; color: #0E0B1D; font: 600 10px/1 var(--f-mono); padding: 3px 5px; white-space: nowrap; pointer-events: none; }
+.bhole { position: absolute; border: 1px dashed rgba(217,217,217,.7); pointer-events: none; }
+.btag { position: absolute; left: 0; top: 0; transform: translateY(-100%); background: #8E8E8E; color: #2C2C2C; font: 600 10px/1 var(--f-mono); padding: 3px 5px; white-space: nowrap; pointer-events: none; }
 .bwin.block .btag { background: var(--danger); color: #fff; }
 .bwin:not(.sel) .btag { opacity: .8; }
-.bh { position: absolute; width: 14px; height: 14px; background: #8B7CC7; border: 2px solid #0E0B1D; transform: translate(-50%, -50%); touch-action: none; }
+.bh { position: absolute; width: 14px; height: 14px; background: #8E8E8E; border: 2px solid #2C2C2C; transform: translate(-50%, -50%); touch-action: none; }
 .bh::before { content: ""; position: absolute; inset: -10px; }
 .bh.nw { left: 0; top: 0; cursor: nwse-resize; } .bh.n { left: 50%; top: 0; cursor: ns-resize; } .bh.ne { left: 100%; top: 0; cursor: nesw-resize; }
 .bh.e { left: 100%; top: 50%; cursor: ew-resize; } .bh.se { left: 100%; top: 100%; cursor: nwse-resize; } .bh.s { left: 50%; top: 100%; cursor: ns-resize; }
 .bh.sw { left: 0; top: 100%; cursor: nesw-resize; } .bh.w { left: 0; top: 50%; cursor: ew-resize; }
-.bsnap { position: absolute; background: #C9C2E3; pointer-events: none; z-index: 3; }
+.bsnap { position: absolute; background: #D9D9D9; pointer-events: none; z-index: 3; }
 .border-save { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
 .border-save .btn { min-height: 48px; font-size: 13px; }
 @media (max-width: 520px) { .border-save { grid-template-columns: 1fr; } }
@@ -381,7 +381,7 @@ label.btn.disabled { opacity: .35; pointer-events: none; }
 
 /* ---------- 구글 다시 연결 바 ---------- */
 .relink { position: fixed; left: calc(var(--sal) + 10px); right: calc(var(--sar) + 10px); bottom: calc(var(--tab-h) + var(--tabpad) + 10px); z-index: 70;
-  display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 14px; background: rgba(14,11,29,.96); border: 1px solid var(--accent);
+  display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 14px; background: rgba(44,44,44,.96); border: 1px solid var(--accent);
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 6px 24px rgba(0,0,0,.5); }
 .relink .sm-btn { margin: 0; min-height: 38px; }
 .relink-space { height: 64px; }
@@ -389,24 +389,24 @@ label.btn.disabled { opacity: .35; pointer-events: none; }
 
 /* ---------- 레퍼런스 스타일: 상단 헤더 + 보라 글로우 ---------- */
 body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background: radial-gradient(120% 60% at 15% 8%, rgba(86,19,200,.55) 0%, rgba(42,30,77,.32) 40%, transparent 72%),
-              radial-gradient(90% 50% at 100% 100%, rgba(86,19,200,.18) 0%, transparent 60%), #000; }
+  background: radial-gradient(120% 60% at 15% 8%, rgba(127,255,210,.55) 0%, rgba(42,83,69,.32) 40%, transparent 72%),
+              radial-gradient(90% 50% at 100% 100%, rgba(127,255,210,.18) 0%, transparent 60%), #000; }
 html, body { background: #000; }
-.card { background: rgba(14,11,29,.78); border-color: rgba(139,124,199,.22); }
+.card { background: rgba(44,44,44,.78); border-color: rgba(217,217,217,.22); }
 .screen.has-header { padding-top: 0; }
 .app-header { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 12px;
   margin: 0 calc(-1 * (var(--sar) + 16px)) 14px calc(-1 * (var(--sal) + 16px));
   padding: calc(var(--sat) + 14px) calc(var(--sar) + 16px) 14px calc(var(--sal) + 16px);
-  background: linear-gradient(#05040b, rgba(5,4,11,.94)); border-bottom: 1px solid rgba(139,124,199,.14);
+  background: linear-gradient(#1A1816, rgba(26,24,22,.94)); border-bottom: 1px solid rgba(217,217,217,.14);
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 .ah-logo { height: 18px; width: auto; display: block; flex: none; }
-.ah-div { width: 1px; height: 20px; background: rgba(201,194,227,.35); flex: none; }
+.ah-div { width: 1px; height: 20px; background: rgba(217,217,217,.35); flex: none; }
 .ah-title { margin: 0; flex: 1; min-width: 0; font-family: var(--f-body); font-weight: 700; font-size: 21px; letter-spacing: -.01em; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ah-right { display: flex; align-items: center; gap: 6px; flex: none; }
-.ah-pill { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid rgba(139,124,199,.3);
-  background: rgba(14,11,29,.8); color: var(--text-2); font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.ah-pill { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid rgba(217,217,217,.3);
+  background: rgba(44,44,44,.8); color: var(--text-2); font-size: 11.5px; font-weight: 600; white-space: nowrap; }
 .ah-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
-.ah-pill.busy i { background: #8B7CC7; animation: ahpulse 1s infinite alternate; }
+.ah-pill.busy i { background: #8E8E8E; animation: ahpulse 1s infinite alternate; }
 .ah-pill.off i { background: #666; }
 .ah-pill.warn { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 30%, #000); }
 .ah-pill.warn i { background: #FFB020; }
@@ -440,10 +440,10 @@ body { min-height: 100%; }
 /* ======================================================================
  * 리퀴드 글래스: 깊은 블랙 위 보라 빛 번짐 + 반투명 유리 면(블러·채도) + 위쪽 반사광
  *  - 유리(glass): 카드·버튼·칩·헤더·떠 있는 탭바      - 어두운 유리(well): 입력·세그먼트·태그
- *  - 포인트는 #5613C8 하나만 (보라 유리)
+ *  - 포인트는 #7FFFD2 하나만 (보라 유리)
  * ====================================================================== */
 :root {
-  --bg: #06050b;
+  --bg: #1A1816;
   --bg-1: rgba(255,255,255,.05);
   --g-fill: linear-gradient(155deg, rgba(255,255,255,.11) 0%, rgba(255,255,255,.035) 55%, rgba(255,255,255,.06) 100%);
   --g-fill-hi: linear-gradient(155deg, rgba(255,255,255,.17) 0%, rgba(255,255,255,.06) 60%, rgba(255,255,255,.09) 100%);
@@ -453,7 +453,7 @@ body { min-height: 100%; }
   --g-shadow: 0 12px 32px rgba(0,0,0,.45);
   --g-well: rgba(0,0,0,.32);
   --g-well-spec: inset 0 1px 2px rgba(0,0,0,.45), inset 0 -1px 0 rgba(255,255,255,.06);
-  --g-accent: linear-gradient(155deg, rgba(150,100,255,.95) 0%, rgba(86,19,200,.92) 55%, rgba(70,14,170,.95) 100%);
+  --g-accent: linear-gradient(155deg, rgba(166,255,224,.95) 0%, rgba(127,255,210,.92) 55%, rgba(127,255,210,.95) 100%);
   --g-glow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent);
   --sep: rgba(255,255,255,.07);
 }
@@ -461,10 +461,10 @@ html, body { background: var(--bg); }
 /* 유리 뒤에 비칠 빛: 보라 톤만 */
 body::before {
   background:
-    radial-gradient(55% 40% at 12% 6%, rgba(86,19,200,.55) 0%, transparent 70%),
-    radial-gradient(45% 35% at 95% 30%, rgba(139,124,199,.22) 0%, transparent 70%),
-    radial-gradient(60% 45% at 70% 100%, rgba(86,19,200,.35) 0%, transparent 70%),
-    radial-gradient(40% 30% at 0% 75%, rgba(42,30,77,.6) 0%, transparent 70%),
+    radial-gradient(55% 40% at 12% 6%, rgba(127,255,210,.55) 0%, transparent 70%),
+    radial-gradient(45% 35% at 95% 30%, rgba(217,217,217,.22) 0%, transparent 70%),
+    radial-gradient(60% 45% at 70% 100%, rgba(127,255,210,.35) 0%, transparent 70%),
+    radial-gradient(40% 30% at 0% 75%, rgba(42,83,69,.6) 0%, transparent 70%),
     var(--bg);
 }
 
@@ -770,3 +770,8 @@ details.sec:not([open]) > summary { border-radius: 6px; }
 .calc-bar button.eq { background: var(--ar-mint) !important; border-color: var(--ar-mint) !important; color: #0B0B0B !important; }
 .section-title, details.sec > summary .small { color: var(--ar-muted) !important; }
 .hero-title em { color: var(--ar-mint); }
+
+/* 아레나: 민트 위 글자 검정 · 보더 편집 선택 표시 민트 */
+.ah-round { color: #0B0B0B !important; }
+.bwin.sel { outline-color: var(--ar-mint) !important; }
+.btag, .bh { background: var(--ar-mint) !important; color: #0B0B0B !important; }

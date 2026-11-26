@@ -128,9 +128,9 @@ function ImportDialog({ led, draft: d, setDraft, onClose }: { led: Led; draft: D
       x.textBaseline = 'top';
       d.rows.forEach((r, i) => {
         const on = r.on;
-        x.strokeStyle = on ? '#8B7CC7' : 'rgba(255,255,255,.25)'; x.lineWidth = on ? 2 : 1;
+        x.strokeStyle = on ? '#8E8E8E' : 'rgba(255,255,255,.25)'; x.lineWidth = on ? 2 : 1;
         x.setLineDash(on ? [] : [4, 4]);
-        x.fillStyle = on ? 'rgba(86,19,200,.28)' : 'transparent';
+        x.fillStyle = on ? 'rgba(127,255,210,.28)' : 'transparent';
         x.fillRect(r.x * s, r.y * s, r.w * s, r.h * s);
         x.strokeRect(r.x * s + 1, r.y * s + 1, r.w * s - 2, r.h * s - 2);
         if (on) { x.fillStyle = '#fff'; x.fillText(`${i + 1} ${r.name}`, r.x * s + 5, r.y * s + 5); }

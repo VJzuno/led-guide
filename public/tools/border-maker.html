@@ -14,24 +14,24 @@
 <style>
 /* Layout: LED canvas monitor on the left with draggable windows, control rack on the right; stacks on phone. */
 :root {
-  /* ZUNO 팔레트: 블랙 배경 + 포인트 #5613C8 */
+  /* ZUNO 팔레트: 블랙 배경 + 포인트 #7FFFD2 */
   --bg: #000000;
-  --panel: #0E0B1D;
-  --line: #3A3A52;
+  --panel: #2C2C2C;
+  --line: #383637;
   --fg: #FFFFFF;
-  --muted: #8B7CC7;
-  --soft: #C9C2E3;
-  --accent: #5613C8;
+  --muted: #8E8E8E;
+  --soft: #D9D9D9;
+  --accent: #7FFFD2;
   --accent-ink: #FFFFFF;
-  --accent-text: #8B7CC7;
-  --well: #050409;
-  --chk-a: #1B1530;
-  --chk-b: #0E0B1D;
-  --guide: #8B7CC7;
-  --guide-rgb: 139, 124, 199;
+  --accent-text: #8E8E8E;
+  --well: #111111;
+  --chk-a: #3A3A3A;
+  --chk-b: #2C2C2C;
+  --guide: #8E8E8E;
+  --guide-rgb: 142, 142, 142;
   --block: #FF4D6D;
   --block-rgb: 255, 77, 109;
-  --snap: #C9C2E3;
+  --snap: #D9D9D9;
   --font-ui: "IBM Plex Sans KR", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
   --font-num: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   color-scheme: dark;
@@ -61,7 +61,7 @@ h1 span { color: var(--accent-text); font-family: var(--font-num); font-weight: 
   background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0;
   outline: 1px solid var(--line);
 }
-.screen.feed { background-image: linear-gradient(135deg, #2A1E4D, #5613C8 45%, #C9C2E3); }
+.screen.feed { background-image: linear-gradient(135deg, #2A5345, #7FFFD2 45%, #D9D9D9); }
 .screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .screen .guideimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; opacity: .5; }
 .safe { position: absolute; inset: 5%; border: 1px dashed rgba(var(--guide-rgb),.9); pointer-events: none; }
@@ -74,9 +74,9 @@ h1 span { color: var(--accent-text); font-family: var(--font-num); font-weight: 
 .box.block:not(.sel) .tag { background: rgba(var(--block-rgb),.75); }
 .box.sel { outline: 2px solid var(--guide); z-index: 2; }
 .box .hole { position: absolute; border: 1px dashed rgba(var(--guide-rgb),.7); pointer-events: none; }
-.box .tag { position: absolute; left: 0; top: 0; transform: translateY(-100%); background: var(--guide); color: #0E0B1D; font: 600 11px/1 var(--font-num); padding: 3px 5px; white-space: nowrap; pointer-events: none; }
+.box .tag { position: absolute; left: 0; top: 0; transform: translateY(-100%); background: var(--guide); color: #2C2C2C; font: 600 11px/1 var(--font-num); padding: 3px 5px; white-space: nowrap; pointer-events: none; }
 .box:not(.sel) .tag { background: rgba(var(--guide-rgb),.75); }
-.handle { position: absolute; width: 12px; height: 12px; background: var(--guide); border: 2px solid #0E0B1D; transform: translate(-50%, -50%); }
+.handle { position: absolute; width: 12px; height: 12px; background: var(--guide); border: 2px solid #2C2C2C; transform: translate(-50%, -50%); }
 .handle::before { content: ""; position: absolute; inset: -8px; }
 .snapline { position: absolute; background: var(--snap); pointer-events: none; z-index: 3; }
 .viewbar { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); }

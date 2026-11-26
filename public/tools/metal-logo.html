@@ -9,8 +9,8 @@
 <style>
 /* Layout: 좌측 컨트롤 레일 + 우측 16:9 모니터, 하단 타임라인 */
 :root{
-  --ink:#0E0B1D; --deep:#2A1E4D; --purple:#5A3B8C; --lav:#8B7CC7; --lav-l:#C9C2E3; --slate:#3A3A52;
-  --black:#000000; --point:#5613C8; --point-hi:#7a3ff0; --line:rgba(201,194,227,.12);
+  --ink:#2C2C2C; --deep:#2A5345; --purple:#5A8579; --lav:#8E8E8E; --lav-l:#D9D9D9; --slate:#383637;
+  --black:#000000; --point:#7FFFD2; --point-hi:#A6FFE0; --line:rgba(217,217,217,.12);
   --f-display:"Chakra Petch",system-ui,sans-serif;
   --f-body:"IBM Plex Sans KR",system-ui,sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,monospace;
@@ -32,7 +32,7 @@ input[type=range]{width:100%;accent-color:var(--point)}
 .seg button[aria-pressed=true]{background:var(--point);border-color:var(--point-hi);color:#fff}
 .seg button:focus-visible,.btn:focus-visible,#drop:focus-visible{outline:2px solid var(--point-hi);outline-offset:2px}
 #drop{border:1.5px dashed var(--slate);border-radius:10px;padding:16px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:border-color .15s,background .15s}
-#drop.over,#drop:hover{border-color:var(--point-hi);background:rgba(86,19,200,.14)}
+#drop.over,#drop:hover{border-color:var(--point-hi);background:rgba(127,255,210,.14)}
 #drop img{max-height:64px;max-width:100%;image-rendering:auto;background:repeating-conic-gradient(#1a1630 0 25%,#100d20 0 50%) 0 0/12px 12px;border-radius:4px}
 #drop span{font-size:12px;color:var(--lav)}
 .btn{background:var(--point);color:#fff;border:0;border-radius:8px;padding:11px 12px;font:700 13px var(--f-display);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;width:100%}
@@ -43,7 +43,7 @@ main{display:flex;flex-direction:column;min-width:0;padding:22px 26px;gap:14px}
 .monitor{position:relative;width:100%;max-width:calc((100vh - 150px)*16/9);margin:0 auto;aspect-ratio:16/9;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#000}
 .monitor.checker{background:repeating-conic-gradient(#2a2838 0 25%,#1c1a28 0 50%) 0 0/32px 32px}
 .monitor canvas{display:block;width:100%;height:100%}
-.hud{position:absolute;left:12px;top:10px;font:500 11px var(--f-mono);letter-spacing:.1em;color:rgba(201,194,227,.55);pointer-events:none}
+.hud{position:absolute;left:12px;top:10px;font:500 11px var(--f-mono);letter-spacing:.1em;color:rgba(217,217,217,.55);pointer-events:none}
 .hud.r{left:auto;right:12px}
 .timeline{width:100%;max-width:calc((100vh - 150px)*16/9);margin:0 auto;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
 .play{width:38px;height:38px;border-radius:50%;border:1px solid var(--slate);background:var(--deep);color:#fff;cursor:pointer;font-size:14px}

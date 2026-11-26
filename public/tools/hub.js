@@ -32,10 +32,10 @@
   const askTap = (list, files) => new Promise((resolve) => {
     const st = document.createElement('style');
     st.textContent = `.zs-back{position:fixed;inset:0;z-index:2147483600;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:24px}
-.zs-card{width:100%;max-width:340px;background:#0E0B1D;border:1px solid #3A3A52;border-radius:16px;padding:18px;color:#fff;font:15px/1.45 'IBM Plex Sans KR',-apple-system,system-ui,sans-serif}
-.zs-card b{display:block;margin-bottom:4px}.zs-card p{margin:0 0 14px;color:#8B7CC7;font-size:13px;word-break:break-all}
-.zs-card button{width:100%;min-height:48px;border-radius:12px;border:1px solid #3A3A52;background:transparent;color:#fff;font:inherit;font-weight:600}
-.zs-card button.go{background:#5613C8;border-color:#5613C8;margin-bottom:8px}`;
+.zs-card{width:100%;max-width:340px;background:#2C2C2C;border:1px solid #383637;border-radius:6px;padding:18px;color:#D9D9D9;font:15px/1.45 'IBM Plex Sans KR',-apple-system,system-ui,sans-serif}
+.zs-card b{display:block;margin-bottom:4px}.zs-card p{margin:0 0 14px;color:#8E8E8E;font-size:13px;word-break:break-all}
+.zs-card button{width:100%;min-height:48px;border-radius:4px;border:1px solid #383637;background:transparent;color:#fff;font:inherit;font-weight:600}
+.zs-card button.go{background:#7FFFD2;border-color:#7FFFD2;color:#0B0B0B;margin-bottom:8px}`;
     const back = document.createElement('div'); back.className = 'zs-back';
     back.innerHTML = `<div class="zs-card"><b>${list.length > 1 ? list.length + '개 파일 준비됨' : '파일 준비됨'}</b><p></p><button class="go">사진 · 파일에 저장</button><button class="no">닫기</button></div>`;
     back.querySelector('p').textContent = list.map((f) => f.name).join(', ');
@@ -70,11 +70,11 @@
   const css = `
 .zuno-home{position:fixed;z-index:2147483000;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));
   display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border-radius:999px;
-  background:rgba(14,11,29,.92);border:1px solid #5613C8;color:#fff;text-decoration:none;
+  background:rgba(44,44,44,.92);border:1px solid #7FFFD2;color:#fff;text-decoration:none;
   font:600 13px/1 'IBM Plex Sans KR',-apple-system,system-ui,sans-serif;letter-spacing:.02em;
   -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 4px 18px rgba(0,0,0,.5)}
-.zuno-home:hover{background:#2A1E4D}
-.zuno-home:focus-visible{outline:2px solid #8B7CC7;outline-offset:2px}
+.zuno-home:hover{background:#2A5345}
+.zuno-home:focus-visible{outline:2px solid #8E8E8E;outline-offset:2px}
 @media print{.zuno-home{display:none!important}}`;
   const st = document.createElement('style');
   st.textContent = css;
